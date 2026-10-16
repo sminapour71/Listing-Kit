@@ -122,5 +122,6 @@ test('existing listing filters, search, and create-listing screen still work', a
   await page.getByRole('button', { name: 'Create Listing', exact: true }).click();
   await page.getByLabel('Property address').fill('123 Sample Street');
   await page.getByRole('button', { name: 'Generate Marketing Package' }).click();
-  await expect(page.getByRole('status')).toContainText('Generation is coming soon');
+  await expect(page.getByRole('heading', { name: 'Marketing Package', exact: true })).toBeVisible();
+  await expect(page.getByRole('article', { name: 'Brochure page 1: Cover' })).toContainText('123 Sample Street');
 });
