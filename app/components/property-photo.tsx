@@ -25,5 +25,5 @@ export default function PropertyPhoto({ photo, alt, className, mode = 'natural',
     const observer = new ResizeObserver(fit); observer.observe(image); fit();
     return () => observer.disconnect();
   }, [photo.url, photo.position, photo.focalX, photo.focalY, mode]);
-  return <img ref={ref} src={photo.url} alt={alt} className={className} loading={loading} fetchPriority={fetchPriority} width={dimensions.width} height={dimensions.height} data-photo-focal-x={photo.focalX} data-photo-focal-y={photo.focalY} data-photo-mode={mode} data-photo-position={photoPosition(photo.position)} data-photo-orientation={dimensions.orientation} data-photo-ratio={dimensions.aspectRatio} style={{ objectFit: 'contain', objectPosition: photoPosition(photo.position) }} onLoad={fit} />;
+  return <img ref={ref} src={photo.url} alt={alt} className={className} loading={loading} fetchPriority={fetchPriority} width={dimensions.width} height={dimensions.height} data-photo-focal-x={photo.focalX} data-photo-focal-y={photo.focalY} data-photo-mode={mode} data-photo-position={photoPosition(photo.position)} data-photo-orientation={dimensions.orientation} data-photo-ratio={dimensions.aspectRatio} style={{ objectFit: mode === 'cover' ? 'cover' : 'contain', objectPosition: photoPosition(photo.position) }} onLoad={fit} />;
 }

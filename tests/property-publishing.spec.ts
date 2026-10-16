@@ -32,7 +32,7 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
     await page.getByLabel('Floor plan', { exact: true }).setInputFiles('tests/fixtures/floor-plan.pdf');
     await expect(page.getByAltText('Selected floor plan')).toBeVisible();
     await page.getByRole('button', { name: 'Generate Marketing Package', exact: true }).click();
-    await expect(page.locator('.brochure-cover-image')).toHaveCSS('object-fit', 'contain');
+    await expect(page.locator('.brochure-cover-image')).toHaveCSS('object-fit', 'cover');
     await expect(page.locator('.brochure-cover-image')).toHaveAttribute('data-photo-orientation', 'landscape');
     await page.getByRole('button', { name: 'Page 2: Property', exact: true }).click();
     await expect(page.locator('.brochure-photo-grid.photo-layout-ready')).toBeVisible();
@@ -110,7 +110,8 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
           if (b > 230 && r < 35 && g < 35) counts[2]++;
           if (r > 230 && g > 230 && b < 35) counts[3]++;
         }
-        for (const edges of counts) expect(edges, 'All four photo edges should survive PDF framing').toBeGreaterThan(100);
+        expect(counts[0]).toBeLessThan(20); expect(counts[1]).toBeLessThan(20);
+        expect(counts[2]).toBeGreaterThan(100); expect(counts[3]).toBeGreaterThan(100);
       } finally { await task.destroy(); }
     }
     await page.evaluate(address => { const key = `listory.property.v1:${address.trim().toLowerCase()}`; const saved = JSON.parse(localStorage.getItem(key)!); saved.url = 'https://obsolete.example/property/' + saved.slug; localStorage.setItem(key, JSON.stringify(saved)); }, address);

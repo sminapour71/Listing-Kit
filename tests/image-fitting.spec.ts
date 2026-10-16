@@ -12,7 +12,7 @@ test('fits mixed three-photo compositions without gaps, overlap, or changing pag
     for (const [i, [width, height]] of dimensions.entries()) files.push({ name: `framing-${i}.png`, mimeType: 'image/png', buffer: await sharp({ create: { width, height, channels: 3, background: i === 2 ? '#b47659' : '#486b5a' } }).png().toBuffer() });
     await page.getByLabel('Property photos', { exact: true }).setInputFiles(files);
     await page.getByRole('button', { name: 'Generate Marketing Package', exact: true }).click();
-    await expect(page.locator('.brochure-cover-image')).toHaveCSS('object-fit', 'contain');
+    await expect(page.locator('.brochure-cover-image')).toHaveCSS('object-fit', 'cover');
     await page.getByRole('button', { name: 'Page 2: Property', exact: true }).click();
     for (const width of [1440, 834, 390]) {
       await page.setViewportSize({ width, height: 1000 });

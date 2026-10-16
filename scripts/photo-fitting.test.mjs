@@ -42,3 +42,14 @@ test('validates optional normalized focal pairs and preserves full-photo fitting
     }
   }
 });
+
+test('only the cover always fills its frame, using the existing focal calculation', () => {
+  for (const [w,h] of [[3000,750],[750,1500],[1200,1200]]) {
+    assert.equal(photoFit(w,h,816,440.64,'cover'),'cover');
+    assert.equal(photoFit(w,h,816,440.64,'feature'),'contain');
+    assert.equal(photoFit(w,h,816,440.64,'natural'),'contain');
+  }
+  const focal={focalX:.7,focalY:.4};
+  assert.notEqual(focalPosition(focal,750,1500,816,440.64,'cover'),'center');
+  assert.equal(focalPosition({},750,1500,816,440.64,'cover'),'center');
+});

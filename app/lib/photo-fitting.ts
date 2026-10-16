@@ -1,5 +1,5 @@
 export type PhotoPosition = 'center' | 'top' | 'bottom' | 'left' | 'right';
-export type PhotoMode = 'natural' | 'feature' | 'secondary';
+export type PhotoMode = 'natural' | 'feature' | 'secondary' | 'cover';
 export type PhotoDimensions = { width?: number; height?: number; aspectRatio?: number; orientation?: 'landscape' | 'portrait' | 'square'; position?: PhotoPosition; focalX?: number; focalY?: number };
 export function describePhoto(width?: number, height?: number): PhotoDimensions {
   if (!Number.isFinite(width) || !Number.isFinite(height) || width! <= 0 || height! <= 0 || width! > 100_000 || height! > 100_000) return {};
@@ -7,8 +7,9 @@ export function describePhoto(width?: number, height?: number): PhotoDimensions 
   return { width: Math.round(width!), height: Math.round(height!), aspectRatio, orientation: aspectRatio < .9 ? 'portrait' : aspectRatio > 1.1 ? 'landscape' : 'square' };
 }
 export function photoPosition(value?: string): PhotoPosition { return ['center', 'top', 'bottom', 'left', 'right'].includes(value || '') ? value as PhotoPosition : 'center'; }
-/** Crop only close aspect-ratio matches: at most 5% for features, 15% for secondary photos. */
+/** The front cover always fills its frame. Other frames retain gentle fitting. */
 export function photoFit(width: number, height: number, frameWidth: number, frameHeight: number, mode: PhotoMode = 'secondary'): 'contain' | 'cover' {
+  if (mode === 'cover') return 'cover';
   if (mode === 'natural' || !width || !height || !frameWidth || !frameHeight) return 'contain';
   const source = width / height, frame = frameWidth / frameHeight;
   const retained = Math.min(source / frame, frame / source);

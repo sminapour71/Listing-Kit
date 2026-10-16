@@ -77,7 +77,7 @@ async function fitPropertyPhotos(page: Page) {
   }); }, metadata);
   await page.evaluate(applyGalleryLayouts, (await page.evaluate(measurePhotoGrids as () => ReturnType<typeof measurePhotoGrids>)).map(galleryLayout));
   const frames = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLImageElement>('img[data-photo-mode]')).map(img => { const css = getComputedStyle(img); return { width: parseFloat(css.width), height: parseFloat(css.height) }; }));
-  const fits = sources.map((source, i) => { const frame = frames[i]; const fit = photoFit(source.width, source.height, frame.width, frame.height, ['feature', 'secondary', 'natural'].includes(source.mode || '') ? source.mode as PhotoMode : 'feature'); return { fit, position: focalPosition(source, source.width, source.height, frame.width, frame.height, fit) }; });
+  const fits = sources.map((source, i) => { const frame = frames[i]; const fit = photoFit(source.width, source.height, frame.width, frame.height, ['feature', 'secondary', 'natural', 'cover'].includes(source.mode || '') ? source.mode as PhotoMode : 'feature'); return { fit, position: focalPosition(source, source.width, source.height, frame.width, frame.height, fit) }; });
   await page.evaluate(values => { document.querySelectorAll<HTMLImageElement>('img[data-photo-mode]').forEach((img, i) => { img.style.objectFit = values[i].fit; img.style.objectPosition = values[i].position; }); }, fits);
 }
 
