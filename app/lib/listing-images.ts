@@ -1,7 +1,8 @@
+import { describePhoto } from './photo-fitting';
 import type { ListingImage } from './listing';
 async function canvasAsset(canvas: HTMLCanvasElement, name: string, pdfPages?: number): Promise<ListingImage> {
   const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('The image could not be prepared. Please try another file.')), 'image/png'));
-  return { id: crypto.randomUUID(), url: URL.createObjectURL(blob), name, pdfPages };
+  return { id: crypto.randomUUID(), url: URL.createObjectURL(blob), name, pdfPages, ...describePhoto(canvas.width, canvas.height) };
 }
 export async function prepareListingImage(file: File, allowPdf = false): Promise<ListingImage> {
   if (file.size > 20 * 1024 * 1024) throw new Error(`${file.name}: please choose a file smaller than 20 MB.`);

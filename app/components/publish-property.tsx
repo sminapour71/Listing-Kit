@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Copy, ExternalLink, Globe, LoaderCircle } from 'lucide-react';
 import QRCode from 'qrcode';
+import type { PhotoDimensions } from '../lib/photo-fitting';
 import type { Listing } from '../lib/listing';
 import type { BrandProfile } from '../lib/brand-profile';
 import { publicationStorageKey, type Publication } from '../lib/property-publication';
@@ -70,16 +71,16 @@ export default function PublishProperty({ listing, brand, sample, onQr }: { list
       let p = publication;
       if (!p) { const created = await json(await fetch('/api/properties', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address, sample }) })); p = created; remember(p!); }
       const owner = { 'x-listory-management': p!.token };
-      const images = new Map<string, string>();
+      const images = new Map<string, { url: string } & PhotoDimensions>();
       async function upload(src: string, photo = false) {
         if (!src) return '';
-        if (images.has(src)) return images.get(src)!;
+        if (images.has(src)) return images.get(src)!.url;
         const blob = await imageBlob(src, photo);
         const result = await json(await fetch(`/api/properties/${p!.slug}/assets`, { method: 'POST', headers: { ...owner, 'Content-Type': blob.type }, body: blob }));
-        images.set(src, result.url); return result.url as string;
+        images.set(src, result); return result.url as string;
       }
-      const photos = []; for (const photo of listing.photos) photos.push({ ...photo, url: await upload(photo.url, true) });
-      const floorPlan = listing.floorPlan ? { ...listing.floorPlan, url: await upload(listing.floorPlan.url) } : null;
+      const photos = []; for (const photo of listing.photos) { const url = await upload(photo.url, true); photos.push({ ...photo, ...images.get(photo.url), url }); }
+      const floorPlan = listing.floorPlan ? { ...listing.floorPlan, url: await upload(listing.floorPlan.url), ...images.get(listing.floorPlan.url) } : null;
       const publicBrand = { ...brand, headshot: await upload(brand.headshot), personalLogo: await upload(brand.personalLogo), brokerageLogo: await upload(brand.brokerageLogo) };
       const result = await json(await fetch(`/api/properties/${p!.slug}`, { method: 'PUT', headers: { ...owner, 'Content-Type': 'application/json' }, body: JSON.stringify({ listing: { ...listing, photos, floorPlan }, brand: publicBrand }) }));
       if (active.current) { remember({ ...p!, ...result }); setMessage('Published. Your property link and brochure QR code are ready.'); }

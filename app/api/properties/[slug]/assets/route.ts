@@ -1,3 +1,4 @@
+import { describePhoto } from '../../../../lib/photo-fitting';
 import sharp from 'sharp';
 import { randomUUID } from 'node:crypto';
 import { boundedBody, checked, config, ownedProperty, PropertyError, propertyFailure, sameOrigin, supabase } from '../../../../lib/server/properties';
@@ -11,6 +12,6 @@ export async function POST(request: Request, context: { params: Promise<{ slug: 
     const ext = image.format === 'jpeg' ? 'jpg' : image.format;
     const path = `${slug}/${randomUUID()}.${ext}`;
     await checked(await supabase(`/storage/v1/object/listory-published/${path}`, { method: 'POST', headers: { 'Content-Type': `image/${image.format}`, 'x-upsert': 'false' }, body: new Uint8Array(body) }));
-    return Response.json({ url: `${config().url}/storage/v1/object/public/listory-published/${path}` }, { headers: { 'Cache-Control': 'no-store' } });
+    return Response.json({ ...describePhoto(image.width, image.height), url: `${config().url}/storage/v1/object/public/listory-published/${path}` }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) { return propertyFailure(e); }
 }

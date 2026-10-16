@@ -19,10 +19,21 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
   try {
     await page.goto('/#create-listing');
     for (const [label, value] of Object.entries({ 'Property address': address, 'Listing price': '2345000', Bedrooms: '4', Bathrooms: '3.5', 'Square footage': '2875', 'Property taxes': '9876.54', 'Strata fee': '0', Parking: 'Two private spaces', Storage: 'Secure storage', 'Property description': 'REAL PUBLISHED PROPERTY STORY. '.repeat(30) + 'FINAL PUBLISHED SENTENCE.', 'Property features': 'Private garden, Mountain views, Last published feature' })) await page.getByLabel(label, { exact: false }).fill(value);
-    await page.getByLabel('Property photos', { exact: true }).setInputFiles(['public/images/property-1.jpg', 'public/images/property-2.jpg', 'public/images/property-3.jpg']);
+    const photoFiles = [];
+    for (const [i, [width, height]] of [[3600, 900], [900, 1500], [1800, 1200], [1100, 1100], [2800, 700], [700, 1300]].entries()) {
+      // Saturated edge bands reveal cropping in the actual rendered PDF.
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}"><rect width="100%" height="100%" fill="#cad3c8"/><rect width="60" height="100%" fill="#ff0000"/><rect x="${width - 60}" width="60" height="100%" fill="#00ff00"/><rect width="100%" height="60" fill="#0000ff"/><rect y="${height - 60}" width="100%" height="60" fill="#ffff00"/></svg>`;
+      photoFiles.push({ name: `orientation-${i + 1}.png`, mimeType: 'image/png', buffer: await sharp(Buffer.from(svg)).png().toBuffer() });
+    }
+    await page.getByLabel('Property photos', { exact: true }).setInputFiles(photoFiles);
     await page.getByLabel('Floor plan', { exact: true }).setInputFiles('tests/fixtures/floor-plan.pdf');
     await expect(page.getByAltText('Selected floor plan')).toBeVisible();
     await page.getByRole('button', { name: 'Generate Marketing Package', exact: true }).click();
+    await expect(page.locator('.brochure-cover-image')).toHaveCSS('object-fit', 'contain');
+    await expect(page.locator('.brochure-cover-image')).toHaveAttribute('data-photo-orientation', 'landscape');
+    await page.getByRole('button', { name: 'Page 2: Property', exact: true }).click();
+    await expect(page.locator('.photo-grid-mixed')).toBeVisible();
+    await expect(page.locator('.photo-grid-mixed>img[data-photo-orientation=portrait]')).toHaveCSS('grid-row-end', '-1');
     await page.getByRole('button', { name: 'Publish Property Page', exact: true }).click();
     await expect(page.getByText('Published. Your property link and brochure QR code are ready.', { exact: true })).toBeVisible({ timeout: 100_000 });
     publication = await page.evaluate(address => JSON.parse(localStorage.getItem(`listory.property.v1:${address.trim().toLowerCase()}`)!), address);
@@ -56,9 +67,13 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
     await expect(publicPage.locator('body')).not.toContainText(publication!.token);
     for (const [name, width] of [['desktop', 1440], ['tablet', 834], ['mobile', 390]] as const) {
       await publicPage.setViewportSize({ width, height: 1000 });
+      for (const image of await publicPage.locator('img[loading=lazy]').all()) await image.scrollIntoViewIfNeeded();
       await publicPage.locator('.public-footer').scrollIntoViewIfNeeded();
       await publicPage.waitForFunction(() => Array.from(document.images).every(image => image.complete && image.naturalWidth > 0));
       expect(await publicPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+      await expect(publicPage.locator('.public-hero-image')).toHaveCSS('object-fit', 'contain');
+      expect(await publicPage.locator('.public-hero-image').evaluate((img: HTMLImageElement) => Math.abs(img.getBoundingClientRect().width / img.getBoundingClientRect().height - img.naturalWidth / img.naturalHeight))).toBeLessThan(.01);
+      for (const photo of await publicPage.locator('.public-gallery img').all()) expect(await photo.evaluate((img: HTMLImageElement) => Math.abs(img.getBoundingClientRect().width / img.getBoundingClientRect().height - img.naturalWidth / img.naturalHeight))).toBeLessThan(.01);
       await publicPage.screenshot({ path: info.outputPath(`property-${name}.png`), fullPage: true });
     }
     for (const [option, count, width] of [['Standard 8.5', 4, 612], ['Folded 11', 2, 1224]] as const) {
@@ -76,6 +91,21 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
         await page4.render({ canvas: canvas as never, canvasContext: canvas.getContext('2d') as never, viewport }).promise;
         const pixels = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
         expect(jsQR(new Uint8ClampedArray(pixels.data), canvas.width, canvas.height)?.data).toBe(publication!.url);
+        // Inspect the visible cover artwork, not merely the embedded source file.
+        const cover = await pdf.getPage(1); const coverViewport = cover.getViewport({ scale: 2 });
+        const coverCanvas = createCanvas(Math.ceil(coverViewport.width), Math.ceil(coverViewport.height));
+        await cover.render({ canvas: coverCanvas as never, canvasContext: coverCanvas.getContext('2d') as never, viewport: coverViewport }).promise;
+        const rgba = coverCanvas.getContext('2d').getImageData(0, 0, coverCanvas.width, coverCanvas.height).data;
+        const counts = [0, 0, 0, 0];
+        const startX = count === 2 ? 612 * 2 : 0;
+        for (let y = 0; y < coverCanvas.height; y++) for (let x = startX; x < coverCanvas.width; x++) {
+          const offset = (y * coverCanvas.width + x) * 4, r = rgba[offset], g = rgba[offset + 1], b = rgba[offset + 2];
+          if (r > 230 && g < 35 && b < 35) counts[0]++;
+          if (g > 230 && r < 35 && b < 35) counts[1]++;
+          if (b > 230 && r < 35 && g < 35) counts[2]++;
+          if (r > 230 && g > 230 && b < 35) counts[3]++;
+        }
+        for (const edges of counts) expect(edges, 'All four photo edges should survive PDF framing').toBeGreaterThan(100);
       } finally { await task.destroy(); }
     }
     await page.evaluate(address => { const key = `listory.property.v1:${address.trim().toLowerCase()}`; const saved = JSON.parse(localStorage.getItem(key)!); saved.url = 'https://obsolete.example/property/' + saved.slug; localStorage.setItem(key, JSON.stringify(saved)); }, address);
@@ -90,6 +120,22 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
     await page.getByRole('button', { name: 'Copy Link' }).click();
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(publication!.url);
     const forbiddenStatus = await page.evaluate(async slug => (await fetch(`/api/properties/${slug}`, { method: 'DELETE', headers: { 'x-listory-management': 'a'.repeat(64) } })).status, publication!.slug); expect(forbiddenStatus).toBe(403);
+    const saved = await fetch(`${process.env.SUPABASE_URL}/rest/v1/listory_properties?slug=eq.${publication!.slug}&select=listing,brand`, { headers: { apikey: process.env.SUPABASE_SECRET_KEY! } });
+    const snapshot = (await saved.json())[0];
+    expect(snapshot.listing.photos.map(p => p.orientation)).toEqual(['landscape', 'portrait', 'landscape', 'square', 'landscape', 'portrait']);
+    expect(snapshot.listing.photos[0].width).toBe(2400);
+    for (const index of [1, 2, 3]) {
+      const photos = [snapshot.listing.photos[index], ...snapshot.listing.photos.filter((_: unknown, i: number) => i !== index)];
+      const status = await page.evaluate(async ({ slug, token, snapshot }) => (await fetch(`/api/properties/${slug}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-listory-management': token }, body: JSON.stringify(snapshot) })).status, { slug: publication!.slug, token: publication!.token, snapshot: { ...snapshot, listing: { ...snapshot.listing, photos } } });
+      expect(status).toBe(200);
+      for (const width of [1440, 834, 390]) {
+        await publicPage.setViewportSize({ width, height: 1000 }); await publicPage.reload();
+        await expect(publicPage.locator('.public-hero-image')).toHaveAttribute('data-photo-orientation', photos[0].orientation);
+        await expect(publicPage.locator('.public-hero-image')).toHaveCSS('object-fit', 'contain');
+        expect(await publicPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+        expect(await publicPage.locator('.public-hero-image').evaluate((img: HTMLImageElement) => img.getBoundingClientRect().height)).toBeLessThanOrEqual(1101);
+      }
+    }
     await page.getByRole('button', { name: 'Unpublish Property Page' }).click();
     await expect(page.locator('.publish-message')).toContainText('Unpublished.');
     await publicPage.reload(); await expect(publicPage.getByRole('heading', { name: /no longer available/ })).toBeVisible();

@@ -1,5 +1,6 @@
+import { describePhoto, photoFit, photoPosition, refreshPhotoGrids, type PhotoMode } from '../photo-fitting';
 import chromium from '@sparticuz/chromium';
-import { chromium as playwright, type Browser } from 'playwright-core';
+import { chromium as playwright, type Browser, type Page } from 'playwright-core';
 import { PDFDocument, Duplex, PrintScaling } from 'pdf-lib';
 import sanitizeHtml from 'sanitize-html';
 import sharp from 'sharp';
@@ -52,7 +53,7 @@ function cleanPage(html: string, index: number) {
   return sanitizeHtml(html, {
     allowedTags: ['article', 'div', 'span', 'h2', 'h3', 'p', 'footer', 'img', 'ul', 'li', 'section', 'dl', 'dt', 'dd', 'em', 'strong', 'small', 'br', 'i', 'svg', 'path', 'line', 'rect', 'circle', 'polyline', 'polygon'],
     allowedAttributes: {
-      '*': ['class'], article: ['class', 'style'], img: ['src', 'alt'],
+      '*': ['class'], article: ['class', 'style'], img: ['src', 'alt', 'data-photo-mode', 'data-photo-position'],
       svg: ['class', 'xmlns', 'viewBox', 'width', 'height', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin'],
       path: ['d'], line: ['x1', 'x2', 'y1', 'y2'], rect: ['x', 'y', 'width', 'height', 'rx', 'ry'], circle: ['cx', 'cy', 'r'], polyline: ['points'], polygon: ['points'],
     },
@@ -61,6 +62,22 @@ function cleanPage(html: string, index: number) {
     parser: { lowerCaseAttributeNames: false },
     transformTags: { img: (_tagName, attributes) => ({ tagName: 'img', attribs: { ...attributes, src: new RegExp(`^${PDF_ASSET_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}image-\\d+$`).test(attributes.src || '') ? attributes.src : '' } }) },
   });
+}
+
+// Measure the actual print frames, then use the same pure fitting policy as
+// PropertyPhoto. Re-run after print-only compacting, before page.pdf().
+async function fitPropertyPhotos(page: Page) {
+  const sources = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLImageElement>('img[data-photo-mode]')).map(img => ({ width: img.naturalWidth, height: img.naturalHeight, mode: img.dataset.photoMode, position: img.dataset.photoPosition })));
+  const metadata = sources.map(source => ({ ...describePhoto(source.width, source.height), position: photoPosition(source.position) }));
+  await page.evaluate(values => { document.querySelectorAll<HTMLImageElement>('img[data-photo-mode]').forEach((image, i) => {
+    image.dataset.photoOrientation = values[i].orientation!;
+    image.dataset.photoRatio = String(values[i].aspectRatio);
+    image.setAttribute('width', String(values[i].width)); image.setAttribute('height', String(values[i].height));
+  }); }, metadata);
+  await page.evaluate(refreshPhotoGrids as () => void);
+  const frames = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLImageElement>('img[data-photo-mode]')).map(img => { const rect = img.getBoundingClientRect(); return { width: rect.width, height: rect.height }; }));
+  const fits = sources.map((source, i) => ({ fit: photoFit(source.width, source.height, frames[i].width, frames[i].height, ['feature', 'secondary', 'natural'].includes(source.mode || '') ? source.mode as PhotoMode : 'feature'), position: metadata[i].position }));
+  await page.evaluate(values => { document.querySelectorAll<HTMLImageElement>('img[data-photo-mode]').forEach((img, i) => { img.style.objectFit = values[i].fit; img.style.objectPosition = values[i].position; }); }, fits);
 }
 
 export async function renderBrochurePdf(input: PdfRequest, signal: AbortSignal): Promise<Uint8Array> {
@@ -113,6 +130,8 @@ export async function renderBrochurePdf(input: PdfRequest, signal: AbortSignal):
       .pdf-canvas .brochure-paper{width:816px;min-height:1056px;box-shadow:none;outline:none!important;scroll-margin:0}
       .cover-masthead{padding-top:24px;padding-bottom:24px}
       .brochure-page-footer{padding-bottom:34px}
+      .pdf-tight-page .brochure-photo-grid{--photo-row:140px;--photo-feature:180px}
+      .pdf-tight-page .brochure-photo-grid.photo-grid-mixed>img{height:100%!important}
       .pdf-tight-page .brochure-photo-grid>img{height:140px}
       .pdf-tight-page .brochure-photo-grid.photos-3>img:first-child{height:180px}
       .pdf-tight-page .brochure-detail-photo{height:120px}
@@ -139,6 +158,7 @@ export async function renderBrochurePdf(input: PdfRequest, signal: AbortSignal):
       await Promise.all(Array.from(document.images).map(image => image.decode()));
       if (!document.fonts.check('500 15px "Bodoni Moda"') || !document.fonts.check('400 12px Georgia')) throw new Error('Print fonts did not load');
     });
+    await fitPropertyPhotos(page);
     let fit = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLElement>('.pdf-sheet')).map(sheet => {
       const paper = sheet.querySelector<HTMLElement>('.brochure-paper')!;
       const height = Math.max(paper.scrollHeight, paper.getBoundingClientRect().height);
@@ -150,6 +170,7 @@ export async function renderBrochurePdf(input: PdfRequest, signal: AbortSignal):
       await page.evaluate(results => {
         document.querySelectorAll<HTMLElement>('.brochure-paper').forEach((paper, index) => { if (results[index].scale < .8) paper.classList.add('pdf-tight-page'); });
       }, fit);
+      await fitPropertyPhotos(page);
       fit = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLElement>('.pdf-sheet')).map(sheet => {
         const paper = sheet.querySelector<HTMLElement>('.brochure-paper')!;
         const height = Math.max(paper.scrollHeight, paper.getBoundingClientRect().height);
