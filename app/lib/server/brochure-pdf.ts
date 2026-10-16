@@ -1,4 +1,4 @@
-import { describePhoto, photoFit, photoPosition, refreshPhotoGrids, type PhotoMode } from '../photo-fitting';
+import { describePhoto, focalPosition, photoFit, photoPosition, refreshPhotoGrids, type PhotoMode } from '../photo-fitting';
 import chromium from '@sparticuz/chromium';
 import { chromium as playwright, type Browser, type Page } from 'playwright-core';
 import { PDFDocument, Duplex, PrintScaling } from 'pdf-lib';
@@ -53,7 +53,7 @@ function cleanPage(html: string, index: number) {
   return sanitizeHtml(html, {
     allowedTags: ['article', 'div', 'span', 'h2', 'h3', 'p', 'footer', 'img', 'ul', 'li', 'section', 'dl', 'dt', 'dd', 'em', 'strong', 'small', 'br', 'i', 'svg', 'path', 'line', 'rect', 'circle', 'polyline', 'polygon'],
     allowedAttributes: {
-      '*': ['class'], article: ['class', 'style'], img: ['src', 'alt', 'data-photo-mode', 'data-photo-position'],
+      '*': ['class'], article: ['class', 'style'], img: ['src', 'alt', 'data-photo-mode', 'data-photo-position', 'data-photo-focal-x', 'data-photo-focal-y'],
       svg: ['class', 'xmlns', 'viewBox', 'width', 'height', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin'],
       path: ['d'], line: ['x1', 'x2', 'y1', 'y2'], rect: ['x', 'y', 'width', 'height', 'rx', 'ry'], circle: ['cx', 'cy', 'r'], polyline: ['points'], polygon: ['points'],
     },
@@ -67,7 +67,7 @@ function cleanPage(html: string, index: number) {
 // Measure the actual print frames, then use the same pure fitting policy as
 // PropertyPhoto. Re-run after print-only compacting, before page.pdf().
 async function fitPropertyPhotos(page: Page) {
-  const sources = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLImageElement>('img[data-photo-mode]')).map(img => ({ width: img.naturalWidth, height: img.naturalHeight, mode: img.dataset.photoMode, position: img.dataset.photoPosition })));
+  const sources = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLImageElement>('img[data-photo-mode]')).map(img => ({ width: img.naturalWidth, height: img.naturalHeight, mode: img.dataset.photoMode, position: img.dataset.photoPosition, focalX: img.dataset.photoFocalX === undefined ? undefined : Number(img.dataset.photoFocalX), focalY: img.dataset.photoFocalY === undefined ? undefined : Number(img.dataset.photoFocalY) })));
   const metadata = sources.map(source => ({ ...describePhoto(source.width, source.height), position: photoPosition(source.position) }));
   await page.evaluate(values => { document.querySelectorAll<HTMLImageElement>('img[data-photo-mode]').forEach((image, i) => {
     image.dataset.photoOrientation = values[i].orientation!;
@@ -76,7 +76,7 @@ async function fitPropertyPhotos(page: Page) {
   }); }, metadata);
   await page.evaluate(refreshPhotoGrids as () => void);
   const frames = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLImageElement>('img[data-photo-mode]')).map(img => { const rect = img.getBoundingClientRect(); return { width: rect.width, height: rect.height }; }));
-  const fits = sources.map((source, i) => ({ fit: photoFit(source.width, source.height, frames[i].width, frames[i].height, ['feature', 'secondary', 'natural'].includes(source.mode || '') ? source.mode as PhotoMode : 'feature'), position: metadata[i].position }));
+  const fits = sources.map((source, i) => { const frame = frames[i]; const fit = photoFit(source.width, source.height, frame.width, frame.height, ['feature', 'secondary', 'natural'].includes(source.mode || '') ? source.mode as PhotoMode : 'feature'); return { fit, position: focalPosition(source, source.width, source.height, frame.width, frame.height, fit) }; });
   await page.evaluate(values => { document.querySelectorAll<HTMLImageElement>('img[data-photo-mode]').forEach((img, i) => { img.style.objectFit = values[i].fit; img.style.objectPosition = values[i].position; }); }, fits);
 }
 

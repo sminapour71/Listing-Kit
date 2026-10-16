@@ -1,5 +1,5 @@
 import 'server-only';
-import { describePhoto, photoPosition } from '../photo-fitting';
+import { describePhoto, photoFocal, photoPosition } from '../photo-fitting';
 import { siteOrigin } from '../site-url';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { emptyListing, type Listing } from '../listing';
@@ -77,7 +77,7 @@ export function validateSnapshot(value: unknown, slug: string): { listing: Listi
   if (!listing.address) throw new PropertyError('Enter a property address before publishing.');
   const prefix = config().url + `/storage/v1/object/public/listory-published/${slug}/`;
   function imageUrl(url: unknown) { if (typeof url !== 'string' || !url.startsWith(prefix) || !/^[a-f0-9-]+\.(jpg|png|webp)$/.test(url.slice(prefix.length))) throw new PropertyError('Please upload the property images again.'); return url; }
-  function image(value: unknown, index: number) { const v = value as { url?: unknown; name?: unknown; pdfPages?: unknown; width?: number; height?: number; position?: string }; return { ...describePhoto(v?.width, v?.height), ...(v?.position ? { position: photoPosition(v.position) } : {}), id: `published-${index}`, url: imageUrl(v?.url), name: typeof v.name === 'string' ? v.name.slice(0, 150) : 'Property image', ...(Number.isInteger(v.pdfPages) && Number(v.pdfPages) > 0 && Number(v.pdfPages) < 1000 ? { pdfPages: Number(v.pdfPages) } : {}) }; }
+  function image(value: unknown, index: number) { const v = value as { url?: unknown; name?: unknown; pdfPages?: unknown; width?: number; height?: number; position?: string; focalX?: unknown; focalY?: unknown }; const focal = photoFocal(v || {}); if ((v?.focalX !== undefined || v?.focalY !== undefined) && !focal) throw new PropertyError('Please adjust the photo position again.'); return { ...focal, ...describePhoto(v?.width, v?.height), ...(v?.position ? { position: photoPosition(v.position) } : {}), id: `published-${index}`, url: imageUrl(v?.url), name: typeof v.name === 'string' ? v.name.slice(0, 150) : 'Property image', ...(Number.isInteger(v.pdfPages) && Number(v.pdfPages) > 0 && Number(v.pdfPages) < 1000 ? { pdfPages: Number(v.pdfPages) } : {}) }; }
   if (!Array.isArray(data.listing.photos) || data.listing.photos.length > 16) throw new PropertyError('Choose up to 16 property photos.');
   listing.photos = data.listing.photos.map(image); listing.floorPlan = data.listing.floorPlan ? image(data.listing.floorPlan, 17) : null;
   const brand = {} as BrandProfile;

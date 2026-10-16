@@ -39,3 +39,18 @@ main.public-property{padding:0;background:#fff;max-width:none;margin:0;color:#28
 .brochure-photo-grid.photo-grid-mixed>img,.brochure-photo-grid.photo-grid-mixed.photos-3>img{grid-column:2;grid-row:auto;height:100%;min-height:0;min-width:0}
 .brochure-photo-grid.photo-grid-mixed>img[data-photo-orientation="portrait"]{grid-column:1;grid-row:1/-1;height:100%}
 @media(max-width:650px){.brochure-photo-grid{--photo-row:115px;--photo-feature:170px;--photo-gap:7px}}
+
+/* Optional per-photo positioning; existing page and brochure frames stay intact. */
+.listing-photo-row .photo-adjust-button{width:auto;flex-shrink:0;padding:8px 10px;font-size:11px;white-space:nowrap;color:var(--green,#234b3e)}
+.photo-position-dialog{width:min(600px,calc(100vw - 32px))}
+.photo-position-frame{position:relative;width:100%;aspect-ratio:816/435;overflow:hidden;background:#f5f6f0;cursor:grab;touch-action:none;border-radius:4px;outline-offset:4px}
+.photo-position-frame:active{cursor:grabbing}
+.photo-position-frame:focus-visible{outline:2px solid #234b3e}
+.photo-position-frame img{width:100%;height:100%;object-fit:cover;pointer-events:none;user-select:none}
+.photo-position-note{font-size:12px;line-height:1.65;color:#7c8777;margin:14px 0 10px}
+.photo-position-status{display:block;font-size:11px;color:#5c705f;margin-bottom:18px}
+.photo-position-actions,.photo-position-actions>div{display:flex;align-items:center;gap:12px}
+.photo-position-actions{justify-content:space-between;border-top:1px solid #e0e4d9;padding-top:18px}
+.photo-reset{font-size:12px;color:#234b3e;padding:10px 0;background:none;border:0;cursor:pointer}
+.photo-position-actions .primary{padding:11px 24px}
+@media(max-width:650px){.listing-photo-row{flex-wrap:wrap}.listing-photo-row>span{flex-basis:calc(100% - 68px)}.listing-photo-row .photo-adjust-button{margin-left:0;margin-right:auto}.photo-position-dialog{padding:22px}.photo-position-actions,.photo-position-actions>div{gap:14px}.photo-position-actions .primary{padding:11px 20px}}

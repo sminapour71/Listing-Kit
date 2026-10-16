@@ -26,6 +26,9 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
       photoFiles.push({ name: `orientation-${i + 1}.png`, mimeType: 'image/png', buffer: await sharp(Buffer.from(svg)).png().toBuffer() });
     }
     await page.getByLabel('Property photos', { exact: true }).setInputFiles(photoFiles);
+    await page.getByRole('button', { name: 'Adjust Position for photo 1', exact: true }).click();
+    await page.getByRole('group', { name: 'Photo position preview' }).press('ArrowLeft');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
     await page.getByLabel('Floor plan', { exact: true }).setInputFiles('tests/fixtures/floor-plan.pdf');
     await expect(page.getByAltText('Selected floor plan')).toBeVisible();
     await page.getByRole('button', { name: 'Generate Marketing Package', exact: true }).click();
@@ -58,6 +61,8 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
     expect((await request.get(`/api/properties/${publication!.slug}`)).status()).toBe(403);
     const path = new URL(publication!.url).pathname;
     const response = await publicPage.goto(path); expect(response?.status()).toBe(200);
+    await expect(publicPage.locator('.public-hero-image')).toHaveAttribute('data-photo-focal-x', '0.52');
+    await expect(publicPage.locator('.public-hero-image')).toHaveAttribute('data-photo-focal-y', '0.5');
     await expect(publicPage).toHaveTitle(`${address.split(',')[0]} | Listory`);
     await expect(publicPage.getByRole('heading', { name: address, exact: true })).toBeVisible();
     for (const text of ['FINAL PUBLISHED SENTENCE.', 'Last published feature', 'Two private spaces', 'Secure storage', 'Avery Chen', 'Avery Team', 'Harbour Realty']) await expect(publicPage.locator('body')).toContainText(text);
@@ -124,6 +129,9 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
     const snapshot = (await saved.json())[0];
     expect(snapshot.listing.photos.map(p => p.orientation)).toEqual(['landscape', 'portrait', 'landscape', 'square', 'landscape', 'portrait']);
     expect(snapshot.listing.photos[0].width).toBe(2400);
+    expect(snapshot.listing.photos[0].focalX).toBe(.52); expect(snapshot.listing.photos[0].focalY).toBe(.5);
+    const invalidPosition = await page.evaluate(async ({ slug, token, snapshot }) => (await fetch(`/api/properties/${slug}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-listory-management': token }, body: JSON.stringify({ ...snapshot, listing: { ...snapshot.listing, photos: [{ ...snapshot.listing.photos[0], focalX: -1 }, ...snapshot.listing.photos.slice(1)] } }) })).status, { slug: publication!.slug, token: publication!.token, snapshot });
+    expect(invalidPosition).toBe(400);
     for (const index of [1, 2, 3]) {
       const photos = [snapshot.listing.photos[index], ...snapshot.listing.photos.filter((_: unknown, i: number) => i !== index)];
       const status = await page.evaluate(async ({ slug, token, snapshot }) => (await fetch(`/api/properties/${slug}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-listory-management': token }, body: JSON.stringify(snapshot) })).status, { slug: publication!.slug, token: publication!.token, snapshot: { ...snapshot, listing: { ...snapshot.listing, photos } } });
