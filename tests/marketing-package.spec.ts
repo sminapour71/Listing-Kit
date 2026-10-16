@@ -50,7 +50,7 @@ test('generates all four branded pages from the complete listing and retains edi
   for (const text of ['$8,475.60 / year', '$425 / month', '2 underground spaces', 'Locker 42']) await expect(paper).toContainText(text);
   await expect(paper.getByAltText('Additional property detail photograph')).toBeVisible();
   await goTo(page, 4, 'Realtor');
-  for (const text of ['Alex Morgan', brand.title, brand.teamName, brand.brokerageName, brand.phone, brand.email, brand.website, brand.instagram, 'Book a Private Showing', 'Property QR code', 'Coming in a future version']) await expect(paper).toContainText(text);
+  for (const text of ['Alex Morgan', brand.title, brand.teamName, brand.brokerageName, brand.phone, brand.email, brand.website, brand.instagram, 'Book a Private Showing', 'Property QR code', 'Publish property page to activate QR code.']) await expect(paper).toContainText(text);
   await expect(paper.getByAltText('Alex Morgan headshot')).toBeVisible();
   await expect(paper.getByAltText('Personal or team logo')).toBeVisible(); await expect(paper.getByAltText('Brokerage logo')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Next Page', exact: true })).toBeDisabled();

@@ -25,14 +25,14 @@ async function encodeImage(src: string, photo: boolean, quality: number, signal:
   return result;
 }
 
-export async function exportBrochure({ listing, brand, sample, format, signal }: { listing: Listing; brand: BrandProfile; sample: boolean; format: PdfFormat; signal: AbortSignal }) {
+export async function exportBrochure({ listing, brand, sample, qrCode, format, signal }: { listing: Listing; brand: BrandProfile; sample: boolean; qrCode?: string; format: PdfFormat; signal: AbortSignal }) {
   // A separate, hidden React root serializes artwork only. The visible preview
   // and selected page never change, and no application chrome is sent to print.
   const host = document.createElement('div'); host.hidden = true; host.setAttribute('aria-hidden', 'true'); document.body.append(host);
   const root = createRoot(host);
   let payload: string;
   try {
-    flushSync(() => root.render(<>{[0, 1, 2, 3].map(page => <BrochurePaper key={page} page={page} listing={listing} brand={brand} sample={sample} />)}</>));
+    flushSync(() => root.render(<>{[0, 1, 2, 3].map(page => <BrochurePaper key={page} page={page} listing={listing} brand={brand} sample={sample} qrCode={qrCode} />)}</>));
     const images = Array.from(host.querySelectorAll('img'));
     const sources = [...new Set(images.map(image => image.getAttribute('src')!))];
     const photos = new Set(listing.photos.map(photo => photo.url));

@@ -15,7 +15,7 @@ A visual prototype for real estate agents, made with Next.js, TypeScript, and Ta
 - Open **Brand Profile** in the sidebar to enter your realtor details, headshot, logos, and colours.
 - See a live brand preview, then click **Save Brand Profile** to reuse it after refreshing or returning later.
 
-This is a visual prototype. It does not have accounts, a database, payments, CRM functionality, or external API integrations. PDF downloads use a small stateless renderer within this Next.js application. Listing details and selected property images remain available while navigating within the current tab, including when returning from the brochure. Refreshing or closing the tab clears them. Opening or refreshing the Marketing Package address without an in-memory listing opens a clearly labelled sample brochure. Brand Profile details and resized brand images are saved only when you click **Save Brand Profile**, using storage in the current browser on the current device. They do not sync to other browsers or devices. When you request a PDF, a temporary copy of the brochure artwork and its images is sent to this application’s renderer; it is not stored. Clearing site data removes the saved brand profile. Property photos and floor plans are resized/rendered locally in your browser; they are not saved to a database. PDF export sends the selected artwork and images for temporary rendering only. The sample listings and initial Jamie Davis sidebar profile are demonstration content; saving your name and headshot personalises the sidebar. The onscreen brochure reuses the shared saved Brand Profile now. Other marketing materials are future features.
+This prototype has no accounts, payments, CRM, or MLS integration. Unpublished listing drafts and their uploads remain in the current tab until refresh. Brand Profile information remains in this browser until explicitly saved and does not sync between devices. Publishing saves a public snapshot of the listing and selected branding to Supabase; only the fields intended for the property page are published. PDFs are rendered temporarily and returned without being stored. Published photos/logos are stored separately as public assets. Sample listings and any sample public page are clearly labelled demonstrations. Clearing browser data removes saved branding and the private controls for managing published pages; it does not delete published pages.
 
 ## Preview the brochure online
 
@@ -30,7 +30,7 @@ To use your own property:
 5. Browse **Cover**, **Property**, **Floor plan & details**, and **Realtor** with the thumbnails or page controls.
 6. Click **Back to Listing** to make changes, then generate again.
 
-The template uses up to six property photos: one cover image, up to four property-page images, and an optional detail-page image. You can select up to 16 photos and reorder them to choose which appear. Each file may be up to 20 MB. Missing photos, floor plans, and profile images have clear placeholders; demonstration photos are never silently substituted into your own listing. **Download PDF** offers Standard Letter and Folded 11 × 17 downloads. The property QR area is a placeholder, not a working QR code.
+The template uses up to six property photos: one cover image, up to four property-page images, and an optional detail-page image. You can select up to 16 photos and reorder them to choose which appear. Each file may be up to 20 MB. Missing photos, floor plans, and profile images have clear placeholders; demonstration photos are never silently substituted into your own listing. **Download PDF** offers Standard Letter and Folded 11 × 17 downloads. Publishing activates a real property-page QR code in the existing Page 4 QR area, including both PDF formats. Unpublished listings keep a tasteful placeholder.
 
 Brand colours apply inside the brochure. The rest of Listory keeps its original design. Brand colour text contrast is adjusted automatically for light and dark palettes.
 
@@ -55,8 +55,8 @@ Choose colour printing and high quality when the printer offers those options. T
 - Text remains sharp/selectable, icons remain vector, and fonts are embedded. The Listory wordmark uses the exact Bodoni Moda font; the operating-system Georgia/Arial fonts use compatible embedded Gelasio/Arimo print versions so files render consistently on other computers.
 - Quality depends on the original uploads. New property photos retain up to 3300 pixels, new headshots/logos up to 1600, and PDF floor plans are rendered at up to roughly 300 dpi. Older resized images cannot regain detail; reupload higher-resolution originals if they look soft. PDF floor plans still use the first page only.
 - The renderer respects Vercel’s transfer limits: roughly 4 MB of encoded artwork/images per request, with a maximum PDF just under 4.5 MB. Landscape photos can be compressed modestly at a 300-dpi Letter-width resolution; logos and floor plans remain lossless PNG. If a large set still exceeds the limits, a clear message asks for fewer/smaller images rather than silently producing a blurry file.
-- These are RGB, exact-size PDFs without extra commercial bleed or crop marks. Text, headshots, logos and the existing QR placeholder stay within safe margins. Edge-to-edge photos/backgrounds require a borderless printer or print-shop handling; confirm additional bleed/CMYK requirements with your shop if needed.
-- There is no database, account system, payment system, CRM/MLS integration, or generated QR code. The existing future QR placeholder is unchanged. PDFs are returned directly and are not stored on our server. Listing data is still temporary tab state; the downloaded PDF is the copy you can keep.
+- These are RGB, exact-size PDFs without extra commercial bleed or crop marks. Text, headshots, logos and the property QR area stay within safe margins. Edge-to-edge photos/backgrounds require a borderless printer or print-shop handling; confirm additional bleed/CMYK requirements with your shop if needed.
+- There is no account system, payment system, or CRM/MLS integration. Published property pages use Supabase. PDFs are returned directly and are not stored on our server. Unpublished listing drafts are still temporary tab state.
 
 ## Preview on your computer (first time)
 
@@ -142,7 +142,7 @@ Requires Node.js 24 LTS, matching the tested environment and the version selecte
 
 ## Publishing later
 
-The application is compatible with Vercel's standard Next.js settings. No environment variables or secrets are required. The current online prototype is at https://listing-kit-pink.vercel.app . Once the files are on GitHub, you can import the repository in Vercel and click Deploy without configuring a database.
+The application uses Vercel's standard Next.js settings. Existing brochure previews and PDFs work without Supabase. Property publishing needs the server-only Supabase settings described below. The current online prototype is at https://listing-kit-pink.vercel.app .
 
 ## Demo photo credits
 
@@ -163,3 +163,34 @@ The visible preview and export share `BrochurePaper`; there is no duplicate stat
 Vercel uses the bundled `@sparticuz/chromium` executable with no extra service, browser download, credentials, or configuration. `next.config.ts` includes its compressed binaries and print fonts/styles in the function trace. Node.js 24 is already pinned. The route has a 60-second maximum, a render timeout, bounded requests/responses, and a two-render per-instance concurrency limit.
 
 For local Windows development, an installed Microsoft Edge or Google Chrome is detected automatically. macOS development detects Chrome/Edge in Applications. Linux uses the bundled browser. Developers can optionally set `PDF_CHROMIUM_PATH` to an installed Chromium executable on a non-Vercel machine. No such setting is needed on Vercel.
+
+
+## Publish a property page and activate its QR code
+
+1. Save your Brand Profile, create your listing, then click **Generate Marketing Package**.
+2. In the **PROPERTY PAGE** panel click **Publish Property Page**. This makes the listing photos, details, and saved Realtor contact information public.
+3. Wait for **Published**. Use **Copy Link** or **View Property Page** to open the real public address. Another browser or phone can view it without signing in.
+4. Page 4 and both PDF downloads now use a high-contrast real QR code with its own quiet zone. It encodes the complete HTTPS property link. Print at actual size and proof-scan before distributing a large print run.
+5. Edit the listing as usual, regenerate the brochure, and click **Update Property Page** to refresh the public snapshot. Edits do not silently change published information.
+6. **Unpublish Property Page** immediately makes its URL show a tasteful unavailable page. Previously printed QR codes continue pointing to that URL. Republish with the same address in the same browser to reuse it.
+
+### One-time Supabase setup
+
+Run `supabase/setup.sql` in Supabase's SQL Editor. It creates one private JSON-backed listing table with row-level security and no anonymous/authenticated access, plus one bucket for deliberately published images. Only the server's secret key can write either. In Vercel's Production environment variables save `SUPABASE_URL` and `SUPABASE_SECRET_KEY`; never use `NEXT_PUBLIC_` for the secret or put it in a file, commit, chat, or client bundle. The prototype author has already completed this setup.
+
+Vercel's automatic `VERCEL_PROJECT_PRODUCTION_URL` supplies the canonical production hostname. A production request origin is the fallback. Publishing refuses localhost or a missing HTTPS production address; it does not manufacture a preview URL. Local development can use the real production hostname in that variable for integration testing, but clean-browser checks still target the local server until deployment. Never configure a temporary hostname as the production origin.
+
+The server creates a unique street-address slug, reserves collisions atomically with a random suffix, stores a SHA-256 hash of a random per-listing management capability, accepts individually bounded/re-encoded photos and logos, then publishes the completed snapshot. Failed uploads leave the listing in draft, not a partially published page. The raw capability stays in the creating browser's local storage; it is not placed in public URLs or the public page. Updates and unpublishing require that capability. Supabase keys, private management hashes, and unpublished records are never sent to public visitors.
+
+### First-version limits
+
+- There are no accounts yet. Anyone who can use the prototype can create a new page; the private management capability protects existing pages but is not account authentication or production abuse prevention. Keep this as a controlled prototype until publisher access controls are added.
+- Management belongs to the creating browser and website origin. Changing devices/domains or clearing browser data loses those controls; there is no account-based recovery UI yet. Saved property records can be managed by the project owner in Supabase.
+- The dashboard remains the approved sample dashboard. It is not yet a synced inventory of published records. The current address's publishing controls reappear in the creating browser. Draft editing and unsaved uploads still clear on refresh.
+- Unpublishing removes the webpage, but deliberately public photo URLs, downloaded PDFs, and copies cached or saved by visitors are not revoked. Repeated updates can leave older image assets in storage; a deletion/cleanup interface is not included.
+- The public page uses up to all 16 selected photos, while the brochure retains its approved six-photo layout. Website photos are resized to 2400 pixels and floor plans/logos to 1800; PDFs continue using the original print-prepared assets. PDF floor plans use page 1 only. Individual publishing uploads must fit below Vercel's request size limit.
+- QR codes are software-decoded from both actual PDF exports at 300 dpi in testing. Physical iPhone/Android camera and printer proof testing is still recommended; no physical devices are connected to this workspace.
+
+### Real-storage integration test
+
+After a production build, opt in to `tests/property-publishing.spec.ts` with `LISTORY_LIVE_STORAGE_TEST=1`, both Supabase settings, and the real production hostname in `VERCEL_PROJECT_PRODUCTION_URL`. Run the normal Playwright suite. This writes uniquely named test records, publishes actual uploaded images, opens pages in a fresh browser at desktop/tablet/phone widths, checks duplicate-address drafts and unauthorized management, decodes the real QR and both PDF QR codes, and unpublishes. It removes only its own test records and referenced assets afterward. In this cloud workspace start Node with `NODE_USE_ENV_PROXY=1` so server requests use the managed HTTPS proxy; do not copy or print the injected key. With the opt-in flag absent, the two real-storage project runs are skipped and all existing browser checks still run.

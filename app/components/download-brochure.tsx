@@ -4,7 +4,7 @@ import { Download, X, Files, BookOpen, ArrowRight, LoaderCircle, Check } from 'l
 import type { Listing } from '../lib/listing';
 import type { BrandProfile } from '../lib/brand-profile';
 import type { PdfFormat } from '../lib/pdf-contract';
-export default function DownloadBrochure({ listing, brand, sample }: { listing: Listing; brand: BrandProfile; sample: boolean }) {
+export default function DownloadBrochure({ listing, brand, sample, qrCode }: { listing: Listing; brand: BrandProfile; sample: boolean; qrCode?: string }) {
   const dialog = useRef<HTMLDialogElement>(null); const controller = useRef<AbortController | null>(null);
   const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [message, setMessage] = useState('');
   useEffect(() => () => controller.current?.abort(), []);
@@ -15,7 +15,7 @@ export default function DownloadBrochure({ listing, brand, sample }: { listing: 
     setBusy(true); setError(''); setMessage('');
     try {
       const { exportBrochure } = await import('../lib/export-brochure');
-      await exportBrochure({ listing, brand, sample, format, signal: task.signal });
+      await exportBrochure({ listing, brand, sample, qrCode, format, signal: task.signal });
       dialog.current?.close(); setMessage('Your PDF is ready. Check your Downloads folder.');
     } catch (error) {
       if (!task.signal.aborted) setError(error instanceof Error ? error.message : 'We couldn’t prepare your brochure. Please try again.');
