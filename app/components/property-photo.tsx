@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import { refreshPhotoGrids } from '../lib/brochure-layout';
 import type { ListingImage } from '../lib/listing';
-import { describePhoto, focalPosition, photoFit, photoPosition, refreshPhotoGrids, type PhotoMode } from '../lib/photo-fitting';
+import { describePhoto, focalPosition, photoFit, photoPosition, type PhotoMode } from '../lib/photo-fitting';
 export default function PropertyPhoto({ photo, alt, className, mode = 'natural', loading, fetchPriority }: { photo: ListingImage; alt: string; className?: string; mode?: PhotoMode; loading?: 'lazy' | 'eager'; fetchPriority?: 'high' | 'low' | 'auto' }) {
   const ref = useRef<HTMLImageElement>(null);
   const dimensions = describePhoto(photo.width, photo.height);
@@ -11,8 +12,10 @@ export default function PropertyPhoto({ photo, alt, className, mode = 'natural',
     image.dataset.photoOrientation = actual.orientation!;
     image.dataset.photoRatio = String(actual.aspectRatio);
     image.setAttribute('width', String(actual.width)); image.setAttribute('height', String(actual.height));
-    const grid = image.closest('.brochure-photo-grid'); if (grid) refreshPhotoGrids(grid);
-    const frame = image.getBoundingClientRect();
+    const paper = image.closest('.brochure-paper'); if (paper) refreshPhotoGrids(paper);
+    // Computed dimensions keep subpixel precision without the preview's outer scale.
+    const computed = getComputedStyle(image);
+    const frame = { width: parseFloat(computed.width), height: parseFloat(computed.height) };
     const fit = photoFit(image.naturalWidth, image.naturalHeight, frame.width, frame.height, mode);
     image.style.objectFit = fit;
     image.style.objectPosition = focalPosition(photo, image.naturalWidth, image.naturalHeight, frame.width, frame.height, fit);

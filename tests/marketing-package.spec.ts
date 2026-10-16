@@ -43,7 +43,7 @@ test('generates all four branded pages from the complete listing and retains edi
   await page.getByRole('button', { name: 'Next Page', exact: true }).click();
   await expect(paper).toHaveAttribute('aria-label', 'Brochure page 2: Property');
   await expect(paper).toContainText('Light-filled living in Vancouver.'); await expect(paper).toContainText('Air conditioning');
-  await expect(page.locator('.brochure-photo-grid img')).toHaveCount(4);
+  await expect(page.locator('.brochure-photo-grid img')).toHaveCount(5);
   await expect(page.locator('.brochure-fact-strip')).toHaveCSS('background-color', 'rgb(245, 215, 176)');
   await goTo(page, 3, 'Floor plan & details');
   await expect(paper.getByAltText(/Floor plan for/)).toHaveAttribute('src', /^blob:/);

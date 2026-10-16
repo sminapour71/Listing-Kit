@@ -35,8 +35,8 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
     await expect(page.locator('.brochure-cover-image')).toHaveCSS('object-fit', 'contain');
     await expect(page.locator('.brochure-cover-image')).toHaveAttribute('data-photo-orientation', 'landscape');
     await page.getByRole('button', { name: 'Page 2: Property', exact: true }).click();
-    await expect(page.locator('.photo-grid-mixed')).toBeVisible();
-    await expect(page.locator('.photo-grid-mixed>img[data-photo-orientation=portrait]')).toHaveCSS('grid-row-end', '-1');
+    await expect(page.locator('.brochure-photo-grid.photo-layout-ready')).toBeVisible();
+    await expect(page.locator('.brochure-photo-grid>img[data-photo-orientation=portrait]').first()).toHaveCSS('position', 'absolute');
     await page.getByRole('button', { name: 'Publish Property Page', exact: true }).click();
     await expect(page.getByText('Published. Your property link and brochure QR code are ready.', { exact: true })).toBeVisible({ timeout: 100_000 });
     publication = await page.evaluate(address => JSON.parse(localStorage.getItem(`listory.property.v1:${address.trim().toLowerCase()}`)!), address);

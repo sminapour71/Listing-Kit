@@ -1,7 +1,8 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, ImageIcon, FileImage, UserRound, Sparkles } from 'lucide-react';
 import BrochurePaper, { getBrochureStyles } from './brochure-paper';
+import BrochurePreview from './brochure-preview';
 import PublishProperty from './publish-property';
 import DownloadBrochure from './download-brochure';
 import type { BrandProfile } from '../lib/brand-profile';
@@ -10,13 +11,15 @@ const pageNames = ['Cover', 'Property', 'Floor plan & details', 'Realtor'];
 export default function MarketingPackage({ listing: l, brand: b, sample, sampleBrand, onBack, onBrand }: { listing: Listing; brand: BrandProfile; sample: boolean; sampleBrand: boolean; onBack: () => void; onBrand: () => void }) {
   const [qrCode, setQrCode] = useState('');
   const [page, setPage] = useState(0); const paper = useRef<HTMLElement>(null);
+  const navigationFrame = useRef(0);
+  useEffect(() => () => cancelAnimationFrame(navigationFrame.current), []);
   const styles = getBrochureStyles(b);
-  const additionalPhotos = l.photos.slice(1, 5);
-  function changePage(next: number) { setPage(next); requestAnimationFrame(() => { paper.current?.focus({ preventScroll: true }); paper.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }); }
+  const additionalPhotos = l.photos.slice(1);
+  function changePage(next: number) { cancelAnimationFrame(navigationFrame.current); setPage(next); navigationFrame.current = requestAnimationFrame(() => { paper.current?.focus({ preventScroll: true }); paper.current?.scrollIntoView({ behavior: 'auto', block: 'start' }); }); }
   return <div className="marketing-package" style={styles}><button className="back" onClick={onBack}><ArrowLeft size={16} /> Back to Listing</button><div className="page-heading package-heading"><div><div className="eyebrow">THE SIGNATURE COLLECTION</div><h1>Marketing Package</h1><p>{l.address}</p></div><DownloadBrochure listing={l} brand={b} sample={sample} qrCode={qrCode} /></div>
   <div className="package-summary"><span><Sparkles size={15} /> One signature template. Four considered pages.</span><span>{sample ? 'SAMPLE LISTING' : 'YOUR LISTING'} · {sampleBrand ? 'SAMPLE BRANDING' : 'SAVED BRAND PROFILE'}</span></div>{sampleBrand && <p className="package-brand-note">Sample realtor details are shown. <button onClick={onBrand}>Save your Brand Profile</button> to use your own branding.</p>}{sample && <p className="package-sample-note">Demonstration property and illustrative floor plan. Photos do not depict the sample address.</p>}
   <PublishProperty listing={l} brand={b} sample={sample} onQr={setQrCode} />
   <div className="package-workspace"><nav className="brochure-thumbnails" aria-label="Brochure pages">{pageNames.map((label, index) => <button type="button" key={label} className={page === index ? 'chosen' : ''} aria-current={page === index ? 'page' : undefined} aria-label={`Page ${index + 1}: ${label}`} onClick={() => changePage(index)}><span className={`brochure-mini mini-${index}`} aria-hidden="true"><span className="mini-top" />{index === 0 ? <>{l.photos[0] ? <img src={l.photos[0].url} alt="" /> : <ImageIcon size={15} />}<span className="mini-cover-lines" /></> : index === 1 ? <><span className="mini-lines" /><span className="mini-photo-grid">{additionalPhotos.slice(0, 2).map(photo => <img key={photo.id} src={photo.url} alt="" />)}</span><span className="mini-lines" /></> : index === 2 ? <>{l.floorPlan ? <img className="mini-plan" src={l.floorPlan.url} alt="" /> : <FileImage size={20} />}<span className="mini-lines" /></> : <>{b.headshot ? <img className="mini-headshot" src={b.headshot} alt="" /> : <UserRound size={21} />}<span className="mini-lines" /><span className="mini-cta" /></>}</span><span className="thumbnail-label"><b>0{index + 1}</b>{label}</span></button>)}</nav>
   <div className="package-canvas"><div className="brochure-view-toolbar"><span aria-live="polite">0{page + 1} <span>/ 04</span> <i /> {pageNames[page]}</span><span className="brochure-format">FOUR-PAGE BROCHURE</span></div>
-  <BrochurePaper listing={l} brand={b} sample={sample} page={page} paperRef={paper} qrCode={qrCode} /><div className="brochure-controls"><button type="button" disabled={page === 0} onClick={() => changePage(page - 1)}><ArrowLeft size={16} /> Previous Page</button><span>Page {page + 1} of 4</span><button type="button" disabled={page === 3} onClick={() => changePage(page + 1)}>Next Page <ArrowRight size={16} /></button></div><p className="brochure-preview-note">{sample ? 'Brochure preview · Download as Letter or Folded PDF' : 'Listing held in this tab · Refreshing opens the sample brochure · Download a PDF to keep a copy'}</p></div></div></div>;
+  <BrochurePreview key={`${page}:${qrCode}`}><BrochurePaper listing={l} brand={b} sample={sample} page={page} paperRef={paper} qrCode={qrCode} /></BrochurePreview><div className="brochure-controls"><button type="button" disabled={page === 0} onClick={() => changePage(page - 1)}><ArrowLeft size={16} /> Previous Page</button><span>Page {page + 1} of 4</span><button type="button" disabled={page === 3} onClick={() => changePage(page + 1)}>Next Page <ArrowRight size={16} /></button></div><p className="brochure-preview-note">{sample ? 'Brochure preview · Download as Letter or Folded PDF' : 'Listing held in this tab · Refreshing opens the sample brochure · Download a PDF to keep a copy'}</p></div></div></div>;
 }

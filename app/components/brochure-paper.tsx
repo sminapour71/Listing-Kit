@@ -23,7 +23,7 @@ export default function BrochurePaper({ listing: l, brand: b, sample, page, pape
   const name = `${b.firstName} ${b.lastName}`.trim() || 'Your realtor';
   const styles = getBrochureStyles(b);
   const features = l.features.split(/[,;\n]+/).map(feature => feature.trim()).filter(Boolean);
-  const additionalPhotos = l.photos.slice(1, 5);
+  const additionalPhotos = l.photos.slice(1);
   function footer(n: number) { return <footer className="brochure-page-footer"><span>{b.brokerageName || name}</span><span>{String(n).padStart(2, '0')} <i /> <Wordmark /></span></footer>; }
   return (  <article ref={paperRef} className={`brochure-paper brochure-page-${page + 1}`} style={styles} tabIndex={-1} aria-label={`Brochure page ${page + 1}: ${pageNames[page]}`}>
   {page === 0 && <><div className="cover-masthead"><span>AN EXCEPTIONAL PLACE TO CALL HOME</span>{b.brokerageLogo ? <img src={b.brokerageLogo} alt="Brokerage logo" /> : <span>{b.brokerageName || 'EXCLUSIVELY PRESENTED'}</span>}</div>{l.photos[0] ? <PropertyPhoto className="brochure-cover-image" photo={l.photos[0]} mode="feature" alt={`Cover property photograph for ${l.address}`} /> : <MissingImage>Add a property photo to complete your cover.</MissingImage>}<div className="brochure-cover-content"><div className="brochure-overline">EXCLUSIVELY PRESENTED</div><h2>{l.address}</h2><div className="brochure-cover-price">{money(l.price)}</div><Metrics listing={l} /><div className="cover-branding">{b.personalLogo && <img src={b.personalLogo} alt="Personal or team logo" />}<div><strong>{name}</strong>{b.title && <span>{b.title}</span>}{b.teamName && <span>{b.teamName}</span>}</div><span className="cover-website">{b.website || b.phone}</span></div></div>{footer(1)}</>}

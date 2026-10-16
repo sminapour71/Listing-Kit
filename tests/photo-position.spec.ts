@@ -8,9 +8,11 @@ test('saves individual focal positions with mouse or touch and uses them in both
   await page.goto('/#create-listing');
   await page.getByLabel('Property address', { exact: false }).fill('Photo Position Verification, Vancouver, BC');
   const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1000"><rect width="1800" height="1000" fill="#bfc4c2"/><rect width="1800" height="20" fill="#ff0000"/><rect y="980" width="1800" height="20" fill="#0000ff"/></svg>';
+  const supporting = await sharp({ create: { width: 1800, height: 1000, channels: 3, background: '#849283' } }).png().toBuffer();
   await page.getByLabel('Property photos', { exact: true }).setInputFiles([
     { name: 'vertical-position.png', mimeType: 'image/png', buffer: await sharp(Buffer.from(svg)).png().toBuffer() },
-    { name: 'horizontal-position.png', mimeType: 'image/png', buffer: await sharp({ create: { width: 3000, height: 1000, channels: 3, background: '#718878' } }).png().toBuffer() },
+    { name: 'horizontal-position.png', mimeType: 'image/png', buffer: await sharp(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1000"><rect width="2000" height="1000" fill="#718878"/><rect width="60" height="1000" fill="#ff0000"/><rect x="1940" width="60" height="1000" fill="#0000ff"/></svg>')).png().toBuffer() },
+    ...Array.from({ length: 3 }, (_, i) => ({ name: `supporting-${i}.png`, mimeType: 'image/png', buffer: supporting })),
   ]);
   const open = (n: number) => page.getByRole('button', { name: `Adjust Position for photo ${n}`, exact: true }).click();
   const frame = page.getByRole('group', { name: 'Photo position preview' });
@@ -39,7 +41,7 @@ test('saves individual focal positions with mouse or touch and uses them in both
   await open(1); await expect(frame.locator('img')).toHaveCSS('object-position', '50% 0%');
   await frame.press('Escape'); await expect(dialog).toHaveCount(0);
   await open(2); await expect(dialog.getByRole('status')).toHaveText('Automatic · centred');
-  await drag(100, 0); await expect(frame.locator('img')).not.toHaveCSS('object-position', '50% 50%');
+  await drag((await frame.boundingBox())!.width * .8, 0); await expect(frame.locator('img')).not.toHaveCSS('object-position', '50% 50%');
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await page.getByRole('button', { name: 'Move photo 1 later', exact: true }).click();
   await open(2); await expect(frame.locator('img')).toHaveCSS('object-position', '50% 0%'); await frame.press('Escape');
@@ -76,6 +78,18 @@ test('saves individual focal positions with mouse or touch and uses them in both
       // Focal point at top retains the red edge and crops the blue bottom edge.
       // Centered/ignored data, or using contain, fails one of these assertions.
       expect(red).toBeGreaterThan(1000); expect(blue).toBeLessThan(20);
+      // The gallery's saved horizontal focal point must also reach both PDFs.
+      const gallery = await pdf.getPage(2), galleryViewport = gallery.getViewport({ scale: 2 });
+      const galleryCanvas = createCanvas(Math.ceil(galleryViewport.width), Math.ceil(galleryViewport.height));
+      await gallery.render({ canvas: galleryCanvas as never, canvasContext: galleryCanvas.getContext('2d') as never, viewport: galleryViewport }).promise;
+      const galleryData = galleryCanvas.getContext('2d').getImageData(0, 0, galleryCanvas.width, galleryCanvas.height).data;
+      let leftEdge = 0, rightEdge = 0;
+      for (let y = 0; y < galleryCanvas.height; y++) for (let x = 0; x < 1224; x++) {
+        const i = (y * galleryCanvas.width + x) * 4;
+        if (galleryData[i] > 230 && galleryData[i + 1] < 35 && galleryData[i + 2] < 35) leftEdge++;
+        if (galleryData[i + 2] > 230 && galleryData[i] < 35 && galleryData[i + 1] < 35) rightEdge++;
+      }
+      expect(leftEdge).toBeGreaterThan(1000); expect(rightEdge).toBeLessThan(20);
     } finally { await task.destroy(); }
   }
   expect(requests).toBe(2);

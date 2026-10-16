@@ -14,17 +14,6 @@ export function photoFit(width: number, height: number, frameWidth: number, fram
   const retained = Math.min(source / frame, frame / source);
   return retained >= (mode === 'feature' ? .95 : .85) ? 'cover' : 'contain';
 }
-/** Self-contained DOM helper, also evaluated in the isolated PDF browser. */
-export function refreshPhotoGrids(root: ParentNode = document) {
-  const grids = [...root.querySelectorAll('.brochure-photo-grid')];
-  if (root instanceof Element && root.matches('.brochure-photo-grid')) grids.push(root);
-  for (const grid of grids) {
-    const images = [...grid.querySelectorAll<HTMLImageElement>('img[data-photo-mode]')];
-    const known = images.every(img => Boolean(img.dataset.photoOrientation));
-    grid.classList.toggle('photo-grid-mixed', known && [3, 4].includes(images.length) && images.filter(img => img.dataset.photoOrientation === 'portrait').length === 1);
-  }
-}
-
 export type PhotoFocal = { focalX: number; focalY: number };
 /** A pair is optional for legacy photos, and must be finite, normalized data. */
 export function photoFocal(value: { focalX?: unknown; focalY?: unknown }): PhotoFocal | undefined {

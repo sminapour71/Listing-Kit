@@ -1,4 +1,5 @@
-import { describePhoto, focalPosition, photoFit, photoPosition, refreshPhotoGrids, type PhotoMode } from '../photo-fitting';
+import { applyGalleryLayouts, measurePhotoGrids, galleryLayout, applyBrochureSheetFits, compactBrochureSheets, measureBrochureSheets } from '../brochure-layout';
+import { describePhoto, focalPosition, photoFit, photoPosition, type PhotoMode } from '../photo-fitting';
 import chromium from '@sparticuz/chromium';
 import { chromium as playwright, type Browser, type Page } from 'playwright-core';
 import { PDFDocument, Duplex, PrintScaling } from 'pdf-lib';
@@ -37,15 +38,15 @@ async function loadStyles() {
     readFile(path.join(process.cwd(), 'node_modules/tailwindcss/preflight.css'), 'utf8'),
   ]);
   const fonts = [
-    ['Arial', 'arimo', '400', 'normal'], ['Arial', 'arimo', '700', 'normal'],
-    ['Georgia', 'gelasio', '400', 'normal'], ['Georgia', 'gelasio', '400', 'italic'],
-    ['Georgia', 'gelasio', '700', 'normal'], ['Bodoni Moda', 'bodoni-moda', '500', 'normal'],
+    ['Listory Brochure Sans', 'arimo', '400', 'normal'], ['Listory Brochure Sans', 'arimo', '700', 'normal'],
+    ['Listory Brochure Serif', 'gelasio', '400', 'normal'], ['Listory Brochure Serif', 'gelasio', '400', 'italic'],
+    ['Listory Brochure Serif', 'gelasio', '700', 'normal'], ['Bodoni Moda', 'bodoni-moda', '500', 'normal'],
   ];
   const faces = await Promise.all(fonts.map(async ([family, file, weight, style]) => {
     const data = await readFile(path.join(process.cwd(), 'node_modules/@fontsource', file, 'files', `${file}-latin-${weight}-${style}.woff2`));
     return `@font-face{font-family:"${family}";font-style:${style};font-weight:${weight};src:url(data:font/woff2;base64,${data.toString('base64')}) format('woff2');font-display:block}`;
   }));
-  return faces.join('\n') + '\n' + reset + '\n' + global.replace(/@import\s+['"]tailwindcss['"];?/, '');
+  return faces.join('\n') + '\n' + reset + '\n' + global.replace(/@import\s+['"]tailwindcss['"];?/, '').replace(/@font-face\{font-family:'Listory Brochure (?:Sans|Serif)'[^}]+\}/g, '');
 }
 
 function cleanPage(html: string, index: number) {
@@ -74,14 +75,14 @@ async function fitPropertyPhotos(page: Page) {
     image.dataset.photoRatio = String(values[i].aspectRatio);
     image.setAttribute('width', String(values[i].width)); image.setAttribute('height', String(values[i].height));
   }); }, metadata);
-  await page.evaluate(refreshPhotoGrids as () => void);
-  const frames = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLImageElement>('img[data-photo-mode]')).map(img => { const rect = img.getBoundingClientRect(); return { width: rect.width, height: rect.height }; }));
+  await page.evaluate(applyGalleryLayouts, (await page.evaluate(measurePhotoGrids as () => ReturnType<typeof measurePhotoGrids>)).map(galleryLayout));
+  const frames = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLImageElement>('img[data-photo-mode]')).map(img => { const css = getComputedStyle(img); return { width: parseFloat(css.width), height: parseFloat(css.height) }; }));
   const fits = sources.map((source, i) => { const frame = frames[i]; const fit = photoFit(source.width, source.height, frame.width, frame.height, ['feature', 'secondary', 'natural'].includes(source.mode || '') ? source.mode as PhotoMode : 'feature'); return { fit, position: focalPosition(source, source.width, source.height, frame.width, frame.height, fit) }; });
   await page.evaluate(values => { document.querySelectorAll<HTMLImageElement>('img[data-photo-mode]').forEach((img, i) => { img.style.objectFit = values[i].fit; img.style.objectPosition = values[i].position; }); }, fits);
 }
 
 export async function renderBrochurePdf(input: PdfRequest, signal: AbortSignal): Promise<Uint8Array> {
-  if (!input || !['letter', 'folded'].includes(input.format) || !Array.isArray(input.pages) || input.pages.length !== 4 || !Array.isArray(input.assets) || input.assets.length > 12 || typeof input.address !== 'string' || input.address.length > 500) throw new PdfExportError('Please choose a valid brochure format and try again.', 400);
+  if (!input || !['letter', 'folded'].includes(input.format) || !Array.isArray(input.pages) || input.pages.length !== 4 || !Array.isArray(input.assets) || input.assets.length > 24 || typeof input.address !== 'string' || input.address.length > 500) throw new PdfExportError('Please choose a valid brochure format and try again.', 400);
   if (activeRenders >= 2) throw new PdfExportError('Other brochures are being prepared. Please try again in a moment.', 429);
   const pages = input.pages.map(cleanPage);
   const assets = new Map<string, { body: Buffer; contentType: string }>();
@@ -124,22 +125,12 @@ export async function renderBrochurePdf(input: PdfRequest, signal: AbortSignal):
     await page.emulateMedia({ media: 'screen' });
     await page.setContent(`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src ${PDF_ASSET_ORIGIN}; font-src data:; script-src 'none'; frame-src 'none'; connect-src 'none'"><style id="brochure-styles">${css}</style><style>
       html,body{margin:0;padding:0;width:816px;background:#fff}
-      .pdf-sheet{width:816px;height:1056px;position:relative;overflow:hidden;break-after:page;page-break-after:always}
+      .pdf-sheet{break-after:page;page-break-after:always;box-shadow:none}
       .pdf-sheet:last-child{break-after:auto;page-break-after:auto}
-      .pdf-canvas{width:816px;container-type:inline-size}
-      .pdf-canvas .brochure-paper{width:816px;min-height:1056px;box-shadow:none;outline:none!important;scroll-margin:0}
-      .cover-masthead{padding-top:24px;padding-bottom:24px}
-      .brochure-page-footer{padding-bottom:34px}
-      .pdf-tight-page .brochure-photo-grid{--photo-row:140px;--photo-feature:180px}
-      .pdf-tight-page .brochure-photo-grid.photo-grid-mixed>img{height:100%!important}
-      .pdf-tight-page .brochure-photo-grid>img{height:140px}
-      .pdf-tight-page .brochure-photo-grid.photos-3>img:first-child{height:180px}
-      .pdf-tight-page .brochure-detail-photo{height:120px}
-      .pdf-tight-page:has(.brochure-detail-photo) .brochure-plan{min-height:0}
-      .pdf-tight-page:has(.brochure-detail-photo) .brochure-plan>img{max-height:310px}
+      .pdf-canvas .brochure-paper{outline:none!important;scroll-margin:0}
       *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;animation:none!important;transition:none!important}
       @page{size:8.5in 11in;margin:0}
-    </style></head><body>${pages.map((artwork, index) => `<div class="pdf-sheet" data-page="${index + 1}"><div class="package-canvas pdf-canvas">${artwork}</div></div>`).join('')}</body></html>`, { waitUntil: 'load', timeout: 20_000 });
+    </style></head><body>${pages.map((artwork, index) => `<div class="pdf-sheet brochure-page-sheet" data-page="${index + 1}"><div class="brochure-page-artwork pdf-canvas">${artwork}</div></div>`).join('')}</body></html>`, { waitUntil: 'load', timeout: 20_000 });
     // Freeze the existing desktop rules before Chromium enters paged media.
     // This prevents a phone's screen size or print viewport from restyling art.
     await page.evaluate(async () => {
@@ -153,43 +144,22 @@ export async function renderBrochurePdf(input: PdfRequest, signal: AbortSignal):
         }).join('\n');
       }
       element.textContent = freeze(element.sheet!.cssRules);
-      await Promise.all([document.fonts.load('500 15px "Bodoni Moda"'), document.fonts.load('400 12px Georgia'), document.fonts.load('italic 400 12px Georgia'), document.fonts.load('400 12px Arial'), document.fonts.load('700 12px Arial')]);
+      await Promise.all([document.fonts.load('500 15px "Bodoni Moda"'), document.fonts.load('400 12px "Listory Brochure Serif"'), document.fonts.load('italic 400 12px "Listory Brochure Serif"'), document.fonts.load('400 12px "Listory Brochure Sans"'), document.fonts.load('700 12px "Listory Brochure Sans"')]);
       await document.fonts.ready;
       await Promise.all(Array.from(document.images).map(image => image.decode()));
-      if (!document.fonts.check('500 15px "Bodoni Moda"') || !document.fonts.check('400 12px Georgia')) throw new Error('Print fonts did not load');
+      if (!document.fonts.check('500 15px "Bodoni Moda"') || !document.fonts.check('400 12px "Listory Brochure Serif"')) throw new Error('Print fonts did not load');
     });
     await fitPropertyPhotos(page);
-    let fit = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLElement>('.pdf-sheet')).map(sheet => {
-      const paper = sheet.querySelector<HTMLElement>('.brochure-paper')!;
-      const height = Math.max(paper.scrollHeight, paper.getBoundingClientRect().height);
-      return { height, scale: Math.min(1, 1056 / height), width: paper.scrollWidth };
-    }));
-    // Dense listings keep every word and image. Only when required for paper,
-    // reduce the photo frames a little before considering a uniform page fit.
+    let fit = await page.evaluate(measureBrochureSheets as () => ReturnType<typeof measureBrochureSheets>);
     if (fit.some(result => result.scale < .8)) {
-      await page.evaluate(results => {
-        document.querySelectorAll<HTMLElement>('.brochure-paper').forEach((paper, index) => { if (results[index].scale < .8) paper.classList.add('pdf-tight-page'); });
-      }, fit);
+      await page.evaluate(compactBrochureSheets, fit);
       await fitPropertyPhotos(page);
-      fit = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLElement>('.pdf-sheet')).map(sheet => {
-        const paper = sheet.querySelector<HTMLElement>('.brochure-paper')!;
-        const height = Math.max(paper.scrollHeight, paper.getBoundingClientRect().height);
-        return { height, scale: Math.min(1, 1056 / height), width: paper.scrollWidth };
-      }));
+      fit = await page.evaluate(measureBrochureSheets as () => ReturnType<typeof measureBrochureSheets>);
     }
     for (const [index, result] of fit.entries()) {
       if (result.width > 818 || result.scale < .8) throw new PdfExportError(`Brochure page ${index + 1} has more content than fits at a readable print size. Please shorten ${index === 1 ? 'the property description or features' : 'the long property or contact details'}, then try again.`);
     }
-    await page.evaluate(results => {
-      document.querySelectorAll<HTMLElement>('.pdf-sheet').forEach((sheet, index) => {
-        const paper = sheet.querySelector<HTMLElement>('.brochure-paper')!;
-        const result = results[index];
-        const canvas = sheet.firstElementChild as HTMLElement;
-        canvas.style.position = 'absolute'; canvas.style.left = `${(816 - 816 * result.scale) / (2 * result.scale)}px`; canvas.style.top = '0';
-        canvas.style.zoom = String(result.scale);
-        if (index === 0) sheet.style.background = getComputedStyle(paper).backgroundColor === 'rgb(255, 255, 255)' ? getComputedStyle(paper.querySelector('.brochure-cover-content')!).backgroundColor : getComputedStyle(paper).backgroundColor;
-      });
-    }, fit);
+    await page.evaluate(applyBrochureSheetFits, fit);
     signal.throwIfAborted();
     const letterBytes = await page.pdf({ width: '8.5in', height: '11in', printBackground: true, displayHeaderFooter: false, preferCSSPageSize: true, margin: { top: 0, bottom: 0, left: 0, right: 0 }, tagged: true });
     const letter = await PDFDocument.load(letterBytes);

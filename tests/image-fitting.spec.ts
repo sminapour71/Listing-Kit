@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import sharp from 'sharp';
 import { PDFDocument } from 'pdf-lib';
 import { readFile } from 'node:fs/promises';
-test('fits a portrait into a tall three-photo slot without overlapping or changing page size', async ({ page }, info) => {
+test('fits mixed three-photo compositions without gaps, overlap, or changing page size', async ({ page }, info) => {
   test.setTimeout(90_000);
   for (const portraitFirst of [false, true]) {
     await page.goto('/#create-listing'); await page.reload();
@@ -16,12 +16,9 @@ test('fits a portrait into a tall three-photo slot without overlapping or changi
     await page.getByRole('button', { name: 'Page 2: Property', exact: true }).click();
     for (const width of [1440, 834, 390]) {
       await page.setViewportSize({ width, height: 1000 });
-      const grid = page.locator('.brochure-photo-grid.photo-grid-mixed'); await expect(grid).toBeVisible();
+      const grid = page.locator('.brochure-photo-grid.photo-layout-ready'); await expect(grid).toBeVisible();
       const boxes = await grid.locator('img').evaluateAll(images => images.map(image => { const r = image.getBoundingClientRect(); return { orientation: (image as HTMLImageElement).dataset.photoOrientation, x: r.x, y: r.y, right: r.right, bottom: r.bottom, height: r.height }; }));
-      const portrait = boxes.find(box => box.orientation === 'portrait')!;
-      const others = boxes.filter(box => box !== portrait);
-      for (const other of others) { expect(other.x).toBeGreaterThanOrEqual(portrait.right); expect(portrait.height).toBeGreaterThan(other.height * 1.8); }
-      expect(Math.min(...others.map(box => box.bottom))).toBeLessThanOrEqual(Math.max(...others.map(box => box.y)));
+      for (const [i, a] of boxes.entries()) for (const b of boxes.slice(i + 1)) expect(a.right <= b.x + .5 || b.right <= a.x + .5 || a.bottom <= b.y + .5 || b.bottom <= a.y + .5).toBe(true);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
     }
     if (!portraitFirst) {
