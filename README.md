@@ -121,6 +121,14 @@ npm run typecheck
 npm run start
 ```
 
+PDF deployment packaging check (after the build):
+
+```sh
+node --test scripts/check-pdf-bundle.test.mjs
+```
+
+This copies only the PDF route’s traced deployment files into a temporary isolated directory and initializes the renderer there. It catches missing runtime assets that normal local browser tests cannot detect. The deployment explicitly includes Playwright’s runtime package, including its dynamically loaded `browsers.json` file.
+
 Automated browser checks (after the build, with no process already using port 3100):
 
 ```sh
