@@ -39,7 +39,11 @@ export default function PublishProperty({ listing, brand, sample, onQr }: { list
           const p = JSON.parse(saved) as Publication;
           if (!/^[a-z0-9-]{1,110}$/.test(p.slug) || !/^[a-f0-9]{64}$/.test(p.token)) throw new Error('Saved publication could not be read.');
           const result = await json(await fetch(`/api/properties/${p.slug}`, { headers: { 'x-listory-management': p.token }, cache: 'no-store' }));
-          if (alive) setPublication({ ...p, status: result.status, url: result.url });
+          if (alive) {
+            const refreshed = { ...p, status: result.status, url: result.url };
+            localStorage.setItem(key, JSON.stringify(refreshed));
+            setPublication(refreshed);
+          }
         }
         if (alive) setReady(true);
       } catch { if (alive) setError('The saved property-page connection could not be checked. Refresh to try again. Your existing property page is unchanged.'); }

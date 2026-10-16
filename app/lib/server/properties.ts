@@ -1,4 +1,5 @@
 import 'server-only';
+import { siteOrigin } from '../site-url';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { emptyListing, type Listing } from '../listing';
 import type { BrandProfile } from '../brand-profile';
@@ -23,13 +24,11 @@ export async function checked(response: Response) {
   console.error('Property storage request failed', { status: response.status, code });
   throw new PropertyError('We could not save the property page. Your listing is still here; please try again.', 502);
 }
-export function productionOrigin(request: Request) {
-  const hostname = process.env.VERCEL_PROJECT_PRODUCTION_URL;
-  const origin = hostname ? `https://${hostname.replace(/^https?:\/\//, '').replace(/\/$/, '')}` : process.env.VERCEL_ENV === 'production' ? request.headers.get('origin') : null;
-  if (!origin) throw new PropertyError('Publishing is available on the production website. Open Listory’s live website to publish a real public link.', 503);
-  const url = new URL(origin);
-  if (url.protocol !== 'https:' || url.pathname !== '/' || !url.hostname.includes('.') || /(^|\.)(localhost|local|internal)$/.test(url.hostname) || /^[\d.:\[\]]+$/.test(url.hostname) || url.username || url.password) throw new PropertyError('The production website address needs to be checked before publishing.', 503);
-  return url.origin;
+export function productionOrigin(_request: Request) {
+  // Never infer ownership from Vercel's automatically preferred custom domain
+  // or from request headers. All links use the same explicit site setting.
+  try { return siteOrigin(); }
+  catch { throw new PropertyError('Please check NEXT_PUBLIC_SITE_URL in the website settings before publishing.', 503); }
 }
 export function sameOrigin(request: Request) {
   const origin = request.headers.get('origin');

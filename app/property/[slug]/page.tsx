@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getProperty } from '../../lib/server/properties';
 import { money, number } from '../../lib/listing';
+import { siteOrigin } from '../../lib/site-url';
 import Wordmark from '../../components/wordmark';
 import type { CSSProperties } from 'react';
 export const dynamic = 'force-dynamic';
@@ -13,7 +14,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!row || row.status !== 'published') return { title: 'Property page unavailable | Listory', robots: { index: false, follow: false } };
   const l = row.listing; const title = `${l.address.split(',')[0]} | Listory`;
   const description = (l.description || `${l.address}${l.price ? ` · ${money(l.price)}` : ''}`).replace(/\s+/g, ' ').slice(0, 160);
-  const origin = process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL.replace(/^https?:\/\//, '')}` : undefined;
+  const origin = siteOrigin();
   return { title: { absolute: title }, description, ...(origin ? { alternates: { canonical: `${origin}/property/${row.slug}` } } : {}), robots: row.sample ? { index: false, follow: false } : { index: true, follow: true }, openGraph: { title, description, type: 'website', ...(origin ? { url: `${origin}/property/${row.slug}` } : {}), images: l.photos[0] ? [{ url: l.photos[0].url, alt: l.address }] : [] } };
 }
 export default async function PropertyPage({ params }: Props) {

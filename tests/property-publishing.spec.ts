@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
 import jsQR from 'jsqr';
 import { createCanvas } from '@napi-rs/canvas';
+import { siteOrigin } from '../app/lib/site-url';
 import type { Publication } from '../app/lib/property-publication';
 
 test('publishes real data, opens in a clean browser, and decodes the QR in both PDFs', async ({ page, browser, request }, info) => {
@@ -25,7 +26,7 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
     await page.getByRole('button', { name: 'Publish Property Page', exact: true }).click();
     await expect(page.getByText('Published. Your property link and brochure QR code are ready.', { exact: true })).toBeVisible({ timeout: 100_000 });
     publication = await page.evaluate(address => JSON.parse(localStorage.getItem(`listory.property.v1:${address.trim().toLowerCase()}`)!), address);
-    expect(publication!.url).toBe(`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}/property/${publication!.slug}`);
+    expect(publication!.url).toBe(`${siteOrigin()}/property/${publication!.slug}`);
     const code = page.getByAltText('QR code for the published property page'); await expect(code).toBeVisible();
     const qr = (await code.getAttribute('src'))!;
     const image = await sharp(Buffer.from(qr.split(',')[1], 'base64')).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
@@ -77,10 +78,17 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
         expect(jsQR(new Uint8ClampedArray(pixels.data), canvas.width, canvas.height)?.data).toBe(publication!.url);
       } finally { await task.destroy(); }
     }
+    await page.evaluate(address => { const key = `listory.property.v1:${address.trim().toLowerCase()}`; const saved = JSON.parse(localStorage.getItem(key)!); saved.url = 'https://obsolete.example/property/' + saved.slug; localStorage.setItem(key, JSON.stringify(saved)); }, address);
     await page.getByRole('button', { name: 'Back to Listing', exact: true }).click();
     await page.getByRole('button', { name: 'Generate Marketing Package', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Update Property Page', exact: true })).toBeEnabled();
     await expect(page.getByAltText('QR code for the published property page')).toBeVisible();
+    await expect(page.locator('.published-url')).toHaveAttribute('href', publication!.url);
+    await expect(page.getByRole('link', { name: 'View Property Page' })).toHaveAttribute('href', publication!.url);
+    expect(await page.evaluate(address => JSON.parse(localStorage.getItem(`listory.property.v1:${address.trim().toLowerCase()}`)!).url, address)).toBe(publication!.url);
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.getByRole('button', { name: 'Copy Link' }).click();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(publication!.url);
     const forbiddenStatus = await page.evaluate(async slug => (await fetch(`/api/properties/${slug}`, { method: 'DELETE', headers: { 'x-listory-management': 'a'.repeat(64) } })).status, publication!.slug); expect(forbiddenStatus).toBe(403);
     await page.getByRole('button', { name: 'Unpublish Property Page' }).click();
     await expect(page.locator('.publish-message')).toContainText('Unpublished.');
