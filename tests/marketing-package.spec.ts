@@ -138,6 +138,7 @@ test('all four pages fit narrow phones and desktop, with long content and readab
 test('uses saved brand colours even if contact details have not been filled in', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('listingkit.brand-profile.v1', JSON.stringify({ primaryColour: '#123456', secondaryColour: '#654321' })));
   await page.goto('/#marketing-package');
+  await expect(page.getByRole('heading', { name: 'Marketing Package', exact: true })).toBeVisible();
   await expect(page.getByRole('article')).toBeVisible();
   await expect(page.locator('.package-summary')).toContainText('SAVED BRAND PROFILE');
   await expect(page.locator('.brochure-cover-content')).toHaveCSS('background-color', 'rgb(18, 52, 86)');

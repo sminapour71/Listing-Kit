@@ -1,4 +1,4 @@
-# ListingKit
+# Listory
 
 A visual prototype for real estate agents, made with Next.js, TypeScript, and Tailwind CSS.
 
@@ -32,7 +32,7 @@ To use your own property:
 
 The template uses up to six property photos: one cover image, up to four property-page images, and an optional detail-page image. You can select up to 16 photos and reorder them to choose which appear. Each file may be up to 20 MB. Missing photos, floor plans, and profile images have clear placeholders; demonstration photos are never silently substituted into your own listing. **Download PDF** is visibly disabled and labelled coming soon. The property QR area is a placeholder, not a working QR code.
 
-Brand colours apply inside the brochure. The rest of ListingKit keeps its original design. Brand colour text contrast is adjusted automatically for light and dark palettes.
+Brand colours apply inside the brochure. The rest of Listory keeps its original design. Brand colour text contrast is adjusted automatically for light and dark palettes.
 
 Vercel normally deploys updates pushed to the connected GitHub `main` branch automatically. If an update has just been uploaded, allow the deployment to finish and refresh the website. A profile saved on your local computer's localhost website is separate from the one saved on the Vercel website.
 
@@ -121,3 +121,7 @@ Bundled architectural demo photos were sourced from the public Bedimcode real es
 ## Floor plan rendering
 
 PDF.js renders uploaded PDF floor plans entirely in the browser. The `predev` and `prebuild` scripts copy its matching worker, fonts, character maps, and WebAssembly files from the locked npm package into ignored `public/pdf-assets/`. This happens automatically with `npm run dev` and `npm run build`, including on Vercel. No third-party PDF viewer or API is used. A generated brochure and its listing uploads are temporary tab state; the Brand Profile continues to use its existing browser storage key.
+
+## Product wordmark
+
+The visible product brand is **Listory.**, set in self-hosted Bodoni Moda in the existing forest green. The shared text-only wordmark appears in the sidebar (including mobile navigation) and brochure footers. Repository, folder, package names, and browser storage keys deliberately keep their existing technical names so saved Brand Profiles continue to work.
