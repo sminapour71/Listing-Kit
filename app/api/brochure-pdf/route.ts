@@ -37,7 +37,10 @@ export async function POST(request: Request) {
   } catch (error) {
     if (request.signal.aborted) return new Response(null, { status: 499 });
     if (error instanceof PdfExportError) return Response.json({ error: error.message }, { status: error.status, headers: { 'Cache-Control': 'no-store' } });
-    console.error('Brochure PDF generation failed', error instanceof Error ? process.env.VERCEL ? error.name : error.stack : 'Unknown error');
+    // Keep the exception details in private server logs on Vercel too. Logging
+    // only error.name hid the cause of production-only failures. Never log the
+    // request body: it contains the Realtor's contact details and image assets.
+    console.error('Brochure PDF generation failed', error instanceof Error ? error.stack : 'Unknown error');
     return Response.json({ error: 'We couldn’t prepare your brochure right now. Please try again in a moment. Your listing is still here.' }, { status: 500, headers: { 'Cache-Control': 'no-store' } });
   }
 }
