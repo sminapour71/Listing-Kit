@@ -13,7 +13,7 @@ export async function prepareListingImage(file: File, allowPdf = false): Promise
       const document = await task.promise;
       const page = await document.getPage(1);
       const size = page.getViewport({ scale: 1 });
-      const viewport = page.getViewport({ scale: Math.min(2, 1800 / Math.max(size.width, size.height)) });
+      const viewport = page.getViewport({ scale: Math.min(4.1667, 3600 / Math.max(size.width, size.height)) });
       const canvas = window.document.createElement('canvas'); canvas.width = Math.ceil(viewport.width); canvas.height = Math.ceil(viewport.height);
       const context = canvas.getContext('2d'); if (!context) throw new Error('Image preview is unavailable.');
       await page.render({ canvas, canvasContext: context, viewport }).promise;
@@ -26,7 +26,7 @@ export async function prepareListingImage(file: File, allowPdf = false): Promise
   try {
     const image = new Image(); image.src = source;
     try { await image.decode(); } catch { throw new Error(`${file.name}: this image could not be opened. Please choose another image.`); }
-    const scale = Math.min(1, 2000 / Math.max(image.width, image.height));
+    const scale = Math.min(1, 3300 / Math.max(image.width, image.height));
     const canvas = document.createElement('canvas'); canvas.width = Math.max(1, Math.round(image.width * scale)); canvas.height = Math.max(1, Math.round(image.height * scale));
     const context = canvas.getContext('2d'); if (!context) throw new Error('Image preview is unavailable. Please try another browser.');
     context.drawImage(image, 0, 0, canvas.width, canvas.height);

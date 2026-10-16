@@ -35,7 +35,7 @@ test('contact details, both colours and all images are reusable after save and r
   await expect(page.getByLabel('Secondary brand colour', { exact: true })).toHaveValue('#FEDCBA');
   for (const label of ['Headshot', 'Personal logo', 'Brokerage logo']) await expect(page.getByAltText(`${label} preview`, { exact: true })).toHaveAttribute('src', /^data:image\/jpeg;base64,/);
   const width = await page.getByAltText('Headshot preview', { exact: true }).evaluate((img: HTMLImageElement) => img.naturalWidth);
-  expect(width).toBeGreaterThan(0); expect(width).toBeLessThanOrEqual(600);
+  expect(width).toBeGreaterThan(0); expect(width).toBeLessThanOrEqual(1600);
   await navigate(page, 'Listings 03');
   await expect(page.getByRole('heading', { name: /Listings/ })).toBeVisible();
   await navigate(page, 'Brand Profile');

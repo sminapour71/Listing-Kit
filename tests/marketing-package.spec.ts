@@ -38,7 +38,7 @@ test('generates all four branded pages from the complete listing and retains edi
   await expect(paper).toContainText('2.5'); await expect(paper).toContainText('1,586');
   await expect(paper.getByAltText(/Cover property photograph/)).toHaveAttribute('src', /^blob:/);
   await expect(page.locator('.brochure-cover-content')).toHaveCSS('background-color', 'rgb(16, 29, 50)');
-  await expect(page.getByRole('button', { name: 'Download PDF', exact: true })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Download PDF', exact: true })).toBeEnabled();
   await expect(page.getByRole('button', { name: 'Previous Page', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'Next Page', exact: true }).click();
   await expect(paper).toHaveAttribute('aria-label', 'Brochure page 2: Property');

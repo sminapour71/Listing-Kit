@@ -12,12 +12,19 @@
     "predev": "node scripts/prepare-pdf-assets.mjs"
   },
   "dependencies": {
+    "@fontsource/arimo": "^5.3.0",
     "@fontsource/bodoni-moda": "^5.3.0",
+    "@fontsource/gelasio": "^5.3.0",
+    "@sparticuz/chromium": "^153.0.0",
     "lucide-react": "^0.468.0",
     "next": "^16.0.0",
+    "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^6.4.299",
+    "playwright-core": "^1.64.1",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "sanitize-html": "^2.18.1",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
@@ -25,6 +32,7 @@
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "@types/sanitize-html": "^2.16.2",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.0.0"
   },

@@ -9,14 +9,14 @@ async function prepareImage(file: File): Promise<string> {
   const url = URL.createObjectURL(file);
   try {
     const image = new Image(); image.src = url; try { await image.decode(); } catch { throw new Error('This image could not be opened. Please choose a valid JPG, PNG, or WEBP.'); }
-    const scale = Math.min(1, 600 / Math.max(image.width, image.height));
+    const scale = Math.min(1, 1600 / Math.max(image.width, image.height));
     const canvas = document.createElement('canvas');
     canvas.width = Math.max(1, Math.round(image.width * scale));
     canvas.height = Math.max(1, Math.round(image.height * scale));
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Image preview is unavailable. Please try a different browser.');
     context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    return canvas.toDataURL(file.type === 'image/jpeg' ? 'image/jpeg' : 'image/png', 0.85);
+    return canvas.toDataURL(file.type === 'image/jpeg' ? 'image/jpeg' : 'image/png', 0.94);
   } finally { URL.revokeObjectURL(url); }
 }
 function ImageUpload({ label, value, onChange, round = false }: { label: string; value: string; onChange: (value: string) => void; round?: boolean }) {
