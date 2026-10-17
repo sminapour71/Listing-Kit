@@ -39,8 +39,10 @@ test('balances all gallery counts and orientations, with fixed composition and m
     // Compute the visible photograph rectangles from the preview, including
     // contain letterboxing and the shared page fitting, then inspect real PDFs.
     const expected = await grid.locator('img').evaluateAll(images => {
-      const sheet=images[0].closest('.brochure-page-sheet')!.getBoundingClientRect();
-      return images.map((img:HTMLImageElement)=>{const r=img.getBoundingClientRect(),css=getComputedStyle(img);let width=r.width,height=r.height,x=r.x-sheet.x,y=r.y-sheet.y;
+      // Compare in fixed print-page coordinates. After a viewport change the
+      // ResizeObserver may still be updating the preview's outer scale.
+      const sheet=images[0].closest('.brochure-page-sheet')!.getBoundingClientRect(),previewScale=sheet.width/816;
+      return images.map((img:HTMLImageElement)=>{const r=img.getBoundingClientRect(),css=getComputedStyle(img);let width=r.width/previewScale,height=r.height/previewScale,x=(r.x-sheet.x)/previewScale,y=(r.y-sheet.y)/previewScale;
         if(css.objectFit==='contain'){const scale=Math.min(width/img.naturalWidth,height/img.naturalHeight);const w=img.naturalWidth*scale,h=img.naturalHeight*scale;x+=(width-w)/2;y+=(height-h)/2;width=w;height=h;}
         return {x,y,width,height};});
     });

@@ -24,4 +24,4 @@ export async function proxy(request: NextRequest) {
   await auth.auth.getUser();
   return response;
 }
-export const config = { matcher: ['/', '/sign-in', '/create-account', '/forgot-password', '/reset-password', '/api/properties/:path*', '/api/agent-profile'] };
+export const config = { matcher: ['/', '/sign-in', '/create-account', '/forgot-password', '/reset-password', '/api/properties/:path*', '/api/agent-profile', '/api/open-houses/:path*'] };

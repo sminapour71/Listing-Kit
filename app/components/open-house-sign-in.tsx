@@ -1,0 +1,17 @@
+'use client';
+import {useRef,useState} from 'react';
+import {ArrowUpRight,Check} from 'lucide-react';
+import {BUYER_STATUSES,CONTACT_DISCLOSURE} from '../lib/open-house';
+export default function OpenHouseSignIn({id}:{id:string}){
+ const [busy,setBusy]=useState(false),[error,setError]=useState(''),[propertyUrl,setPropertyUrl]=useState(''),lock=useRef(false);
+ if(propertyUrl)return <section className="oh-confirmation" aria-live="polite"><span className="oh-confirmation-check"><Check size={26}/></span><div className="eyebrow">WELCOME IN</div><h2>You’re signed in.</h2><p>Thank you for visiting. Take your time and make yourself at home.</p><a className="primary" href={propertyUrl}>View Property <ArrowUpRight size={16}/></a></section>;
+ return <section className="oh-sign-in"><div className="eyebrow">MAKE YOURSELF AT HOME</div><h2>Welcome to the open house.</h2><p>Please sign in below before exploring the property.</p><form aria-label="Open House sign-in" onSubmit={async e=>{e.preventDefault();if(lock.current)return;lock.current=true;setBusy(true);setError('');const form=new FormData(e.currentTarget);try{const response=await fetch(`/api/open-house-sign-in/${id}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...Object.fromEntries(form),consent:form.get('consent')==='on'})});const data=await response.json();if(!response.ok)throw new Error(data.error||'Your sign-in could not be saved. Please try again.');setPropertyUrl(data.propertyUrl);}catch(e){setError(e instanceof Error?e.message:'We couldn’t connect. Please try again.');}finally{lock.current=false;setBusy(false);}}}>
+ <fieldset disabled={busy}><div className="oh-visitor-fields"><label className="field">First Name<input name="firstName" autoComplete="given-name" required maxLength={100}/></label><label className="field">Last Name<input name="lastName" autoComplete="family-name" required maxLength={100}/></label><label className="field">Email<input name="email" type="email" autoComplete="email" inputMode="email" required maxLength={254}/></label><label className="field">Phone<input name="phone" type="tel" autoComplete="tel" inputMode="tel" required maxLength={40}/></label></div>
+ <fieldset className="oh-realtor-choice"><legend>Are you currently working with a Realtor?</legend><div>{[['yes','Yes'],['no','No']].map(([value,label])=><label key={value}><input type="radio" name="workingWithRealtor" value={value} required/>{label}</label>)}</div></fieldset>
+ <label className="field">What best describes you?<select name="buyerStatus" required defaultValue=""><option value="" disabled>Choose an option</option>{Object.entries(BUYER_STATUSES).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
+ <label className="field">Anything you’d like the agent to know? <span className="oh-muted">Optional</span><textarea name="notes" rows={3} maxLength={2000}/></label>
+ <div className="oh-trap" aria-hidden="true"><label>Website (leave blank)<input name="website" tabIndex={-1} autoComplete="off"/></label></div>
+ <div className="oh-consent"><p>{CONTACT_DISCLOSURE}</p><label><input name="consent" type="checkbox" required/>I agree to this contact disclosure.</label></div>
+ {error&&<p role="alert" className="brand-error">{error}</p>}<button type="submit" className="primary">{busy?'Saving your sign-in…':'Sign In to Open House'}<ArrowUpRight size={16}/></button><small className="oh-muted">Your sign-in is shared privately with this listing’s agent.</small></fieldset>
+ </form></section>;
+}

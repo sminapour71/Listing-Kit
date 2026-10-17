@@ -1,3 +1,5 @@
+> **Open House sign-in:** See [the owner/visitor guide, security model and testing steps](docs/open-house.md). The additive Open House migration has been applied to the connected project. Property-page QR codes and brochure artwork are unchanged.
+
 > **Agent account update:** See [setup, safe migration, security and testing](docs/agent-accounts.md). Run the additive account migration before deploying this branch. That guide supersedes earlier descriptions below of browser-only branding and browser-secret management. Public URLs and brochure artwork are preserved.
 
 # Listory
