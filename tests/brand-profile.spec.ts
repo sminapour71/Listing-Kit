@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import {test,expect} from './helpers/visual-fixture';
 const key = 'listingkit.brand-profile.v1';
 async function openBrand(page: Page) {
   await page.goto('/#brand-profile');
@@ -26,7 +27,7 @@ test('contact details, both colours and all images are reusable after save and r
   await expect(page.locator('.brand-preview-contact')).toContainText('jamie@example.com');
   await expect(page.locator('.brand-preview-banner')).toHaveCSS('background-color', 'rgb(18, 52, 86)');
   await page.getByRole('button', { name: 'Save Brand Profile' }).click();
-  await expect(page.getByRole('status')).toContainText('Brand profile saved in this browser');
+  await expect(page.getByRole('status')).toContainText('Brand Profile saved to your account');
   await expect(page.locator('.profile strong')).toHaveText('Jamie Davis');
   await page.reload();
   await expect(page.getByLabel('First name', { exact: true })).toHaveValue('Jamie');
@@ -64,27 +65,18 @@ test('rejects invalid, oversized, and unreadable images without replacing an exi
   await expect(preview).toHaveAttribute('src', original!);
 });
 
-test('shows an honest error when browser storage is full or blocked', async ({ page }) => {
-  await page.addInitScript(() => { Storage.prototype.setItem = () => { throw new DOMException('Full', 'QuotaExceededError'); }; });
-  await openBrand(page);
-  await page.getByLabel('First name', { exact: true }).fill('Still here');
-  await page.getByRole('button', { name: 'Save Brand Profile' }).click();
-  await expect(page.locator('.brand-page').getByRole('alert')).toContainText('Storage may be full or blocked');
-  await expect(page.getByRole('status')).toHaveCount(0);
-  await expect(page.getByLabel('First name', { exact: true })).toHaveValue('Still here');
-  await expect(page.locator('.brand-save-state')).toContainText('Unsaved changes');
+test('preserves edits when account saving fails',async({page})=>{
+ await openBrand(page);await page.route('**/api/agent-profile',route=>route.fulfill({status:503,json:{error:'Account service temporarily unavailable.'}}));
+ await page.getByLabel('First name',{exact:true}).fill('Still here');await page.getByRole('button',{name:'Save Brand Profile'}).click();
+ await expect(page.locator('.brand-page').getByRole('alert')).toContainText('Your edits are still on this screen');await expect(page.getByLabel('First name',{exact:true})).toHaveValue('Still here');await expect(page.locator('.brand-save-state')).toContainText('Unsaved changes');
 });
-
-test('recovers from damaged saved data and can save a new profile', async ({ page }) => {
-  await page.addInitScript(key => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem(key, '{broken'); sessionStorage.setItem('seeded', 'yes'); } }, key);
-  await openBrand(page);
-  await expect(page.locator('.brand-page').getByRole('alert')).toContainText('could not be opened');
-  await page.getByLabel('First name', { exact: true }).fill('Recovered');
-  await page.getByRole('button', { name: 'Save Brand Profile' }).click();
-  await expect(page.getByRole('status')).toContainText('Brand profile saved');
-  await page.reload();
-  await expect(page.getByLabel('First name', { exact: true })).toHaveValue('Recovered');
-  await expect(page.locator('.brand-page').getByRole('alert')).toHaveCount(0);
+test('legacy browser profile requires an explicit import and survives the import',async({page,agent})=>{
+ await page.addInitScript(()=>localStorage.setItem('listingkit.brand-profile.v1',JSON.stringify({firstName:'Legacy'})));
+ // Force the server's empty profile rather than the visual fixture seed.
+ await page.route('**/api/agent-profile',route=>route.fulfill({json:{id:agent.id,brand:{}}}));
+ await openBrand(page);await expect(page.getByLabel('First name',{exact:true})).toHaveValue('');
+ await page.getByRole('button',{name:'Import Browser Brand Profile'}).click();await expect(page.getByLabel('First name',{exact:true})).toHaveValue('Legacy');
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('listingkit.brand-profile.v1')!).firstName)).toBe('Legacy');
 });
 
 test('validates email and colour codes before saving', async ({ page }) => {

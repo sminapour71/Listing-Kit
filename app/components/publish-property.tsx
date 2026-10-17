@@ -5,7 +5,7 @@ import QRCode from 'qrcode';
 import type { PhotoDimensions } from '../lib/photo-fitting';
 import type { Listing } from '../lib/listing';
 import type { BrandProfile } from '../lib/brand-profile';
-import { publicationStorageKey, type Publication } from '../lib/property-publication';
+import { type Publication } from '../lib/property-publication';
 
 async function json(response: Response) {
   const data = await response.json().catch(() => null);
@@ -25,32 +25,28 @@ async function imageBlob(src: string, photo: boolean) {
   if (!blob || blob.size > 3_800_000) throw new Error('One image is too large to publish. Please choose a smaller version.');
   return blob;
 }
-export default function PublishProperty({ listing, brand, sample, onQr }: { listing: Listing; brand: BrandProfile; sample: boolean; onQr: (qr: string) => void }) {
+export default function PublishProperty({ listing, brand, sample, onQr, publicationSlug, onPublication }: { listing: Listing; brand: BrandProfile; sample: boolean; onQr: (qr: string) => void; publicationSlug?: string; onPublication?: (p: Publication) => void }) {
   const [publication, setPublication] = useState<Publication | null>(null);
   const [busy, setBusy] = useState(false); const [ready, setReady] = useState(false); const [error, setError] = useState(''); const [message, setMessage] = useState(''); const [qr, setQr] = useState('');
-  const lock = useRef(false); const address = listing.address; const key = publicationStorageKey(address);
+  const lock = useRef(false); const address = listing.address;
   const active = useRef(true);
   useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
   useEffect(() => {
+    // A draft just created by this verified owner is already connected. Do not
+    // race a fresh GET against its in-flight publish and restore stale status.
+    if(publicationSlug && publication?.slug===publicationSlug)return;
     let alive = true; setPublication(null); setQr(''); onQr(''); setReady(false);
     (async () => {
       try {
-        const saved = localStorage.getItem(key);
-        if (saved) {
-          const p = JSON.parse(saved) as Publication;
-          if (!/^[a-z0-9-]{1,110}$/.test(p.slug) || !/^[a-f0-9]{64}$/.test(p.token)) throw new Error('Saved publication could not be read.');
-          const result = await json(await fetch(`/api/properties/${p.slug}`, { headers: { 'x-listory-management': p.token }, cache: 'no-store' }));
-          if (alive) {
-            const refreshed = { ...p, status: result.status, url: result.url };
-            localStorage.setItem(key, JSON.stringify(refreshed));
-            setPublication(refreshed);
-          }
+        if (publicationSlug) {
+          const result = await json(await fetch(`/api/properties/${publicationSlug}`, { cache: 'no-store' }));
+          if (alive) setPublication({ slug: publicationSlug, status: result.status, url: result.url });
         }
         if (alive) setReady(true);
       } catch { if (alive) setError('The saved property-page connection could not be checked. Refresh to try again. Your existing property page is unchanged.'); }
     })();
     return () => { alive = false; };
-  }, [key, onQr]);
+  }, [publicationSlug, onQr]);
   useEffect(() => {
     let alive = true;
     if (publication?.status !== 'published') { setQr(''); onQr(''); return; }
@@ -58,38 +54,33 @@ export default function PublishProperty({ listing, brand, sample, onQr }: { list
     return () => { alive = false; };
   }, [publication, onQr]);
   function remember(p: Publication) {
-    // Save the management capability before uploading anything. Publishing stops
-    // if browser storage is unavailable, so a page cannot become unmanageable.
-    try { localStorage.setItem(key, JSON.stringify(p)); }
-    catch { throw new Error('Please allow browser storage before publishing, so this browser can securely manage your property page.'); }
-    setPublication(p);
+    setPublication(p); onPublication?.(p);
   }
+
   async function publish() {
     if (lock.current || !ready) return; lock.current = true; setBusy(true); setError(''); setMessage('');
     try {
-      localStorage.setItem('listory.storage-check', 'ok'); localStorage.removeItem('listory.storage-check');
       let p = publication;
       if (!p) { const created = await json(await fetch('/api/properties', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address, sample }) })); p = created; remember(p!); }
-      const owner = { 'x-listory-management': p!.token };
       const images = new Map<string, { url: string } & PhotoDimensions>();
       async function upload(src: string, photo = false) {
         if (!src) return '';
         if (images.has(src)) return images.get(src)!.url;
         const blob = await imageBlob(src, photo);
-        const result = await json(await fetch(`/api/properties/${p!.slug}/assets`, { method: 'POST', headers: { ...owner, 'Content-Type': blob.type }, body: blob }));
+        const result = await json(await fetch(`/api/properties/${p!.slug}/assets`, { method: 'POST', headers: { 'Content-Type': blob.type }, body: blob }));
         images.set(src, result); return result.url as string;
       }
       const photos = []; for (const photo of listing.photos) { const url = await upload(photo.url, true); photos.push({ ...photo, ...images.get(photo.url), url }); }
       const floorPlan = listing.floorPlan ? { ...listing.floorPlan, url: await upload(listing.floorPlan.url), ...images.get(listing.floorPlan.url) } : null;
       const publicBrand = { ...brand, headshot: await upload(brand.headshot), personalLogo: await upload(brand.personalLogo), brokerageLogo: await upload(brand.brokerageLogo) };
-      const result = await json(await fetch(`/api/properties/${p!.slug}`, { method: 'PUT', headers: { ...owner, 'Content-Type': 'application/json' }, body: JSON.stringify({ listing: { ...listing, photos, floorPlan }, brand: publicBrand }) }));
+      const result = await json(await fetch(`/api/properties/${p!.slug}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ listing: { ...listing, photos, floorPlan }, brand: publicBrand }) }));
       if (active.current) { remember({ ...p!, ...result }); setMessage('Published. Your property link and brochure QR code are ready.'); }
     } catch (e) { if (active.current) setError(e instanceof Error ? e.message : 'Publishing could not finish. Your listing is still here.'); }
     finally { lock.current = false; if (active.current) setBusy(false); }
   }
   async function unpublish() {
     if (!publication || lock.current) return; lock.current = true; setBusy(true); setError(''); setMessage('');
-    try { await json(await fetch(`/api/properties/${publication.slug}`, { method: 'DELETE', headers: { 'x-listory-management': publication.token } })); remember({ ...publication, status: 'draft' }); setMessage('Unpublished. The link now shows that the property page is no longer available.'); }
+    try { await json(await fetch(`/api/properties/${publication.slug}`, { method: 'DELETE' })); remember({ ...publication, status: 'draft' }); setMessage('Unpublished. The link now shows that the property page is no longer available.'); }
     catch (e) { setError(e instanceof Error ? e.message : 'Please try again.'); }
     finally { lock.current = false; setBusy(false); }
   }

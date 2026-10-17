@@ -29,39 +29,37 @@ function readProfile(raw: string): BrandProfile {
   }
   return result;
 }
-export function useBrandProfile() {
-  const [profile, setProfile] = useState<BrandProfile>({ ...defaultBrandProfile });
-  const [savedProfile, setSavedProfile] = useState<BrandProfile>({ ...defaultBrandProfile });
-  const [ready, setReady] = useState(false);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(BRAND_STORAGE_KEY);
-      if (raw) {
-        const loaded = readProfile(raw);
-        setProfile(loaded); setSavedProfile(loaded);
-      }
-    } catch { setError('Your saved profile could not be opened. You can enter your details again and try saving.'); }
-    setReady(true);
-  }, []);
-  const dirty = JSON.stringify(profile) !== JSON.stringify(savedProfile);
-  function update<K extends keyof BrandProfile>(key: K, value: BrandProfile[K]) {
-    setProfile(current => ({ ...current, [key]: value })); setMessage('');
+export function useBrandProfile(userId: string) {
+  const [profile,setProfile]=useState<BrandProfile>({...defaultBrandProfile});
+  const [savedProfile,setSavedProfile]=useState<BrandProfile>({...defaultBrandProfile});
+  const [ready,setReady]=useState(false),[saving,setSaving]=useState(false),[legacyAvailable,setLegacyAvailable]=useState(false);
+  const [message,setMessage]=useState(''),[error,setError]=useState('');
+  useEffect(()=>{
+    let alive=true;setReady(false);
+    (async()=>{try{
+      // Old local data remains untouched, but is NEVER silently attached to an
+      // account or shown as another signed-in agent's current profile.
+      try{setLegacyAvailable(Boolean(localStorage.getItem(BRAND_STORAGE_KEY)));}catch{}
+      const response=await fetch('/api/agent-profile',{cache:'no-store'}),data=await response.json();
+      if(!response.ok)throw new Error(data.error||'Your account profile could not be opened.');
+      if(data.id!==userId)throw new Error('Please sign in again to load your account profile.');
+      const loaded=readProfile(JSON.stringify(data.brand));
+      if(alive){setProfile(loaded);setSavedProfile(loaded);}
+    }catch(e){if(alive)setError(e instanceof Error?e.message:'Your account profile could not be opened.');}
+    finally{if(alive)setReady(true);}})();return()=>{alive=false;};
+  },[userId]);
+  const dirty=JSON.stringify(profile)!==JSON.stringify(savedProfile);
+  function update<K extends keyof BrandProfile>(key: K,value: BrandProfile[K]){setProfile(current=>({...current,[key]:value}));setMessage('');}
+  function importLegacy(){try{const raw=localStorage.getItem(BRAND_STORAGE_KEY);if(!raw)throw new Error();setProfile(readProfile(raw));setMessage('Your original browser profile is in the form. Review it, then click Save Brand Profile to connect it to this account. The original browser copy has been preserved.');setError('');}catch{setError('The original browser profile could not be opened. It has not been deleted.');}}
+  async function save(){
+    if(saving)return;setError('');setMessage('');
+    if(!isHexColour(profile.primaryColour)||!isHexColour(profile.secondaryColour)){setError('Enter both colours as a # followed by six letters or numbers, for example #244B3D.');return;}
+    setSaving(true);try{
+      const response=await fetch('/api/agent-profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({brand:profile})}),data=await response.json();
+      if(!response.ok)throw new Error(data.error||'Your profile could not be saved.');
+      setSavedProfile({...profile});setMessage('Brand Profile saved to your account. It is ready when you sign in on another device.');
+    }catch(e){setError((e instanceof Error?e.message:'Your account profile could not be saved.')+' Your edits are still on this screen.');}finally{setSaving(false);}
   }
-  function save() {
-    setError(''); setMessage('');
-    if (!isHexColour(profile.primaryColour) || !isHexColour(profile.secondaryColour)) {
-      setError('Enter both colours as a # followed by six letters or numbers, for example #244B3D.'); return;
-    }
-    try {
-      localStorage.setItem(BRAND_STORAGE_KEY, JSON.stringify(profile));
-      setSavedProfile({ ...profile });
-      setMessage('Brand profile saved in this browser. You can return and reuse it anytime.');
-    } catch {
-      setError('Your browser could not save this profile. Storage may be full or blocked. Try smaller images or allow site storage, then save again. Your edits are still on this screen.');
-    }
-  }
-  return { profile, savedProfile, ready, dirty, message, error, update, save };
+  return {profile,savedProfile,ready,dirty,message,error,update,save,saving,legacyAvailable,importLegacy};
 }
 export type BrandProfileController = ReturnType<typeof useBrandProfile>;

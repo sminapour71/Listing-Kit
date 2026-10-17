@@ -73,3 +73,23 @@ main.public-property{padding:0;background:#fff;max-width:none;margin:0;color:#28
 .pdf-tight-page:has(.brochure-detail-photo) .brochure-plan>img{max-height:310px}
 /* Transformed artwork must not contribute its unscaled width to page scrolling. */
 .brochure-preview-scale{overflow:clip}
+
+/* Account screens reuse the existing Listory palette and type styles. */
+.account-page{max-width:560px;margin:0 auto;padding:55px 24px;min-height:100svh;display:flex;flex-direction:column;justify-content:center}
+.account-wordmark{align-self:center;font-size:40px;line-height:1;margin-bottom:32px}
+.account-card{border:1px solid var(--line);border-radius:9px;background:#fff;padding:38px}
+.account-card h1{font-size:34px;line-height:1.15;letter-spacing:-1px;display:block}
+.account-card>p{font-size:12px;line-height:1.8;color:var(--muted);margin:16px 0 25px}
+.account-card form{display:grid;gap:22px}.account-card .primary{width:100%;margin-top:2px}.account-card .primary:disabled{opacity:.6;cursor:wait}
+.account-links{display:flex;flex-wrap:wrap;justify-content:space-between;gap:15px;border-top:1px solid var(--line);padding-top:21px;margin-top:25px;font-size:11px;color:var(--green)}
+.account-links a{text-decoration:underline;text-underline-offset:3px}.account-message{color:var(--green);font-size:12px;line-height:1.8}.account-caption{text-align:center;font-size:10px;color:var(--muted);margin:24px 0 0}
+@media(max-width:500px){.account-page{padding:30px 18px}.account-card{padding:28px 23px}.account-card h1{font-size:30px}.account-wordmark{font-size:36px}}
+
+/* Account ownership controls; existing cards/forms/brochure artwork stay intact. */
+.account-signout{border:0;background:none;padding:0 0 16px;font-size:10px;color:var(--green);text-decoration:underline;text-underline-offset:3px}
+.legacy-import{margin:14px 0 0!important;border:1px solid #cddbbd!important;border-radius:5px!important;padding:10px 12px!important;font-size:11px;color:var(--green)}
+.legacy-listings{border:1px solid var(--line);border-radius:9px;background:white;padding:25px;margin:24px 0}
+.legacy-listings h2{font-family:Georgia,serif;font-size:25px;font-weight:400;margin:0 0 12px}.legacy-listings>p{font-size:11px;line-height:1.8;color:var(--muted);max-width:720px}
+.legacy-listing{display:flex;flex-wrap:wrap;align-items:center;gap:16px;border-top:1px solid var(--line);padding-top:18px;margin-top:18px}.legacy-listing strong{flex-basis:100%;font-weight:500;font-size:12px;overflow-wrap:anywhere}.legacy-listing label{display:flex;align-items:flex-start;gap:8px;font-size:11px;line-height:1.7;flex:1;min-width:220px}.legacy-listing input{margin-top:3px;accent-color:var(--green)}.legacy-listing .primary{font-size:11px}.legacy-listing .primary:disabled{opacity:.4;cursor:default}.workspace-feedback{font-size:12px;line-height:1.8;padding:15px 0;color:var(--green)}
+
+.profile>div:nth-child(2){min-width:0}.profile strong{overflow-wrap:anywhere}.profile .avatar{flex-shrink:0}

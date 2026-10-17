@@ -1,42 +1,8 @@
-'use client';
-import { useState, useEffect, useRef } from 'react';
-import BrandProfilePage from './components/brand-profile';
-import Wordmark from './components/wordmark';
-import ListingForm from './components/listing-form';
-import MarketingPackage from './components/marketing-package';
-import { useBrandProfile } from './lib/brand-profile';
-import { emptyListing, sampleListing, sampleBrand, hasBrandDetails, type Listing, type ListingImage } from './lib/listing';
-import { ArrowUpRight, Plus, Search, LayoutGrid, Sparkles, ChevronDown, BedDouble, Bath, Maximize, Building2, Menu, UserRound } from 'lucide-react';
-const listings = [
- {address:'2847 West 35th Avenue',area:'Kerrisdale, Vancouver',price:'$3,480,000',beds:5,baths:4,size:'3,245',status:'Active',image:'/images/property-1.jpg'},
- {address:'1806 · 1480 Howe Street',area:'Yaletown, Vancouver',price:'$1,285,000',beds:2,baths:2,size:'1,120',status:'Draft',image:'/images/property-2.jpg'},
- {address:'912 Prospect Avenue',area:'Edgemont, North Vancouver',price:'$2,790,000',beds:4,baths:3,size:'2,860',status:'Active',image:'/images/property-3.jpg'},
-];
-type View = 'listings' | 'create-listing' | 'brand-profile' | 'marketing-package';
-export default function Home() {
-  const brandController = useBrandProfile();
-  const [view, setView] = useState<View>('listings');
-  const [draft, setDraft] = useState<Listing>({ ...emptyListing });
-  const [generated, setGenerated] = useState<{ listing: Listing; sample: boolean } | null>(null);
-  const [query, setQuery] = useState(''); const [filter, setFilter] = useState('All listings'); const [mobile, setMobile] = useState(false);
-  const assetUrls = useRef(new Set<string>());
-  useEffect(() => {
-    const sync = () => { const hash = window.location.hash.slice(1); setView(['brand-profile','create-listing','marketing-package'].includes(hash) ? hash as View : 'listings'); setMobile(false); };
-    sync(); window.addEventListener('hashchange', sync);
-    return () => window.removeEventListener('hashchange', sync);
-  }, []);
-  useEffect(() => { const urls = assetUrls.current; return () => { for (const url of urls) URL.revokeObjectURL(url); }; }, []);
-  function navigate(next: View) { setView(next); setMobile(false); window.location.hash = next; window.scrollTo({ top: 0 }); }
-  function registerAsset(asset: ListingImage) { assetUrls.current.add(asset.url); }
-  function generate() { setGenerated({ listing: { ...draft, photos: [...draft.photos] }, sample: false }); navigate('marketing-package'); }
-  function previewSample(card: typeof listings[number]) {
-    setGenerated({ sample: true, listing: { ...sampleListing, address: `${card.address}, ${card.area}`, price: card.price.replace(/[^0-9.]/g,''), bedrooms: String(card.beds), bathrooms: String(card.baths), squareFootage: card.size.replaceAll(',',''), photos: [{ id: 'sample-cover', url: card.image, name: 'Sample cover photograph' }, ...sampleListing.photos.filter(photo => photo.url !== card.image)] } });
-    navigate('marketing-package');
-  }
-  const savedBrand = brandController.savedProfile;
-  const agentName = `${savedBrand.firstName} ${savedBrand.lastName}`.trim() || 'Jamie Davis';
-  const initials = agentName.split(/\s+/).map(part => part[0]).slice(0,2).join('');
-  const hasBrand = hasBrandDetails(savedBrand);
-  const brochure = generated || { listing: sampleListing, sample: true };
-  return <div className="shell"><aside id="workspace-navigation" className={mobile ? 'sidebar open' : 'sidebar'}><a className="brand" href="/" aria-label="Listory home"><Wordmark/></a><div className="workspace-label">WORKSPACE</div><button className={`nav-item ${view !== 'brand-profile' ? 'selected' : ''}`} aria-current={view !== 'brand-profile' ? 'page' : undefined} onClick={() => navigate('listings')}><LayoutGrid size={18}/> Listings <span>03</span></button><button className={`nav-item ${view === 'brand-profile' ? 'selected' : ''}`} aria-current={view === 'brand-profile' ? 'page' : undefined} onClick={() => navigate('brand-profile')}><UserRound size={18}/> Brand Profile</button><div className="sidebar-bottom"><div className="tip"><span className="tip-icon"><Sparkles size={19}/></span><h3>Great listings deserve<br/>great marketing.</h3><p>Your next standout listing<br/>starts right here.</p><span className="tip-line"/></div><div className="profile"><div className="avatar">{savedBrand.headshot ? <img src={savedBrand.headshot} alt="Your headshot"/> : initials}</div><div><strong>{agentName}</strong><small>Agent workspace</small></div><ChevronDown size={15}/></div></div></aside><div className="main-wrap"><header className="topbar"><button className="mobile-menu icon-button" aria-label="Toggle navigation" aria-expanded={mobile} aria-controls="workspace-navigation" onClick={() => setMobile(!mobile)}><Menu/></button><span>Workspace <span className="breadcrumb">/</span><strong>{view === 'brand-profile' ? 'Brand Profile' : 'Listings'}</strong>{(view === 'create-listing' || view === 'marketing-package') && <><span className="breadcrumb">/</span><strong>{view === 'marketing-package' ? 'Marketing Package' : 'Create listing'}</strong></>}</span><span className="preview-tag"><span/> PROTOTYPE</span></header><main>{view === 'brand-profile' ? <BrandProfilePage controller={brandController}/> : view === 'marketing-package' ? brandController.ready ? <MarketingPackage listing={brochure.listing} brand={hasBrand ? savedBrand : sampleBrand} sample={brochure.sample} sampleBrand={!hasBrand} onBrand={() => navigate('brand-profile')} onBack={() => { setDraft(brochure.listing); navigate('create-listing'); }}/> : <p role="status">Loading your saved branding…</p> : view === 'create-listing' ? <ListingForm listing={draft} setListing={setDraft} registerAsset={registerAsset} onGenerate={generate} onBack={() => navigate('listings')}/> : <><div className="page-heading dashboard-heading"><div><div className="eyebrow">YOUR NEXT CHAPTER STARTS HERE</div><h1>Listings<span className="count">03</span></h1><p>Exceptional properties. Beautifully presented.</p></div><button className="primary" onClick={()=>navigate('create-listing')}><Plus size={18}/> Create Listing</button></div><section className="hero"><div className="hero-copy"><div className="hero-kicker"><span/> A BETTER WAY TO LIST</div><h2>Less busywork.<br/>More <em>possibility.</em></h2><p>From property details to polished marketing.<br/>Give every listing the introduction it deserves.</p><button onClick={()=>navigate('create-listing')}>Create something exceptional <ArrowUpRight size={18}/></button></div><div className="hero-image"><img src="/images/hero.jpg" alt="Contemporary architecture with timber accents and landscaped grounds"/><div className="hero-caption"><span>THOUGHTFULLY PRESENTED.</span><span>Beautifully yours. <ArrowUpRight size={15}/></span></div></div></section><div className="listing-toolbar"><div className="tabs">{['All listings','Active','Draft'].map(f=><button key={f} className={filter===f?'active':''} onClick={()=>setFilter(f)}>{f}<span>{f==='All listings'?'3':f==='Active'?'2':'1'}</span></button>)}</div><label className="search"><Search size={17}/><input aria-label="Search listings" placeholder="Search listings" value={query} onChange={e=>setQuery(e.target.value)}/></label></div><div className="listing-grid">{listings.filter(l=>(filter==='All listings'||l.status===filter)&&`${l.address} ${l.area}`.toLowerCase().includes(query.toLowerCase())).map((l,i)=><article className="listing-card" key={l.address}><div className="property-photo"><img src={l.image} alt={`Example property: ${l.address}`}/><span className={`status ${l.status.toLowerCase()}`}><span/>{l.status}</span><span className="photo-count">{i===0?'12':i===1?'8':'16'} photos</span></div><div className="property-info"><div className="price-row"><strong>{l.price}</strong><span className="sample-tag">SAMPLE</span></div><h2>{l.address}</h2><p>{l.area}</p><div className="property-facts"><span><BedDouble/>{l.beds} beds</span><span><Bath/>{l.baths} baths</span><span><Maximize/>{l.size} sq ft</span></div><button className="sample-brochure-button" onClick={()=>previewSample(l)}>Preview sample brochure <ArrowUpRight size={14}/></button></div></article>)}</div>{listings.filter(l=>(filter==='All listings'||l.status===filter)&&`${l.address} ${l.area}`.toLowerCase().includes(query.toLowerCase())).length===0&&<div className="empty"><Search/><h2>No listings found</h2><p>Try a different address or clear your search.</p><button onClick={()=>{setQuery('');setFilter('All listings')}}>Clear filters</button></div>}<footer className="dashboard-footer"><span><Building2 size={15}/> A considered workspace for exceptional real estate.</span><span>Made for your next move.</span></footer></>}</main></div></div>;
+import { redirect } from 'next/navigation';
+import { currentAgent } from './lib/server/auth';
+import Workspace from './components/workspace';
+export default async function Home(){
+  const agent=await currentAgent();
+  if(!agent)redirect('/sign-in');
+  return <Workspace user={{id:agent.user.id,email:agent.user.email||''}}/>;
 }

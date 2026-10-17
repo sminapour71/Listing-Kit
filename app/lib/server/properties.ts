@@ -1,18 +1,14 @@
 import 'server-only';
 import { describePhoto, photoFocal, photoPosition } from '../photo-fitting';
 import { siteOrigin } from '../site-url';
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { emptyListing, type Listing } from '../listing';
 import type { BrandProfile } from '../brand-profile';
 
-export class PropertyError extends Error { constructor(message: string, public status = 400) { super(message); } }
-export type PropertyRecord = { slug: string; status: 'draft' | 'published'; listing: Listing; brand: BrandProfile; sample: boolean; management_hash: string };
-export function config() {
-  const url = process.env.SUPABASE_URL?.replace(/\/$/, ''); const key = process.env.SUPABASE_SECRET_KEY;
-  if (!url || !key) throw new PropertyError('Publishing is not connected yet. Please finish the Supabase setup.', 503);
-  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(url)) throw new PropertyError('The Supabase project address needs to be checked.', 503);
-  return { url, key };
-}
+import { config, PropertyError } from './config';
+import { requireAgent, agentRequest } from './auth';
+export { config, PropertyError } from './config';
+export type PropertyRecord = { slug: string; status: 'draft' | 'published'; listing: Listing; brand: BrandProfile; sample: boolean; owner_id?: string; updated_at?: string };
 export async function supabase(path: string, init: RequestInit = {}) {
   const { url, key } = config();
   const response = await fetch(url + path, { ...init, headers: { apikey: key, ...init.headers }, cache: 'no-store', signal: AbortSignal.timeout(25_000) });
@@ -21,7 +17,7 @@ export async function supabase(path: string, init: RequestInit = {}) {
 export async function checked(response: Response) {
   if (response.ok) return response;
   let code = ''; try { code = (await response.json()).code || ''; } catch {}
-  if (['PGRST205', '42P01'].includes(code)) throw new PropertyError('Please run the Listory setup script in Supabase before publishing.', 503);
+  if (['PGRST205', '42P01', '42703', 'PGRST204'].includes(code)) throw new PropertyError('The account database update is not installed yet. Run the Listory account migration in Supabase, then try again.', 503);
   console.error('Property storage request failed', { status: response.status, code });
   throw new PropertyError('We could not save the property page. Your listing is still here; please try again.', 502);
 }
@@ -54,17 +50,25 @@ export const tokenHash = (token: string) => createHash('sha256').update(token).d
 export const makeToken = () => randomBytes(32).toString('hex');
 export async function getProperty(slug: string): Promise<PropertyRecord | null> {
   if (!/^[a-z0-9-]{1,110}$/.test(slug)) return null;
-  const response = await checked(await supabase(`/rest/v1/listory_properties?slug=eq.${slug}&select=slug,status,listing,brand,sample,management_hash`));
+  // Public pages receive only an explicitly published snapshot. Never select
+  // account ownership, private profile fields, or the legacy management hash.
+  const response = await checked(await supabase(`/rest/v1/listory_properties?slug=eq.${slug}&status=eq.published&select=slug,status,listing,brand,sample`));
   const rows = await response.json(); return rows[0] || null;
 }
-export async function ownedProperty(request: Request, slug: string) {
-  const token = request.headers.get('x-listory-management') || '';
-  if (!/^[a-f0-9]{64}$/.test(token)) throw new PropertyError('This browser does not have permission to manage that property page.', 403);
-  const row = await getProperty(slug);
-  if (!row || !timingSafeEqual(Buffer.from(tokenHash(token)), Buffer.from(row.management_hash))) throw new PropertyError('This browser does not have permission to manage that property page.', 403);
-  return row;
+export const OWNED_PROPERTY_FIELDS = 'slug,status,listing,brand,sample,owner_id,updated_at';
+export async function ownedProperty(_request: Request, slug: string) {
+  const agent = await requireAgent();
+  if (!/^[a-z0-9-]{1,110}$/.test(slug)) throw new PropertyError('Property not found in this account.',404);
+  const response = await checked(await agentRequest(agent,`listory_properties?slug=eq.${slug}&owner_id=eq.${agent.user.id}&select=${OWNED_PROPERTY_FIELDS}`));
+  const [row] = await response.json();
+  if (!row) throw new PropertyError('Property not found in this account.',404);
+  return { ...row as PropertyRecord, agent };
 }
-export async function patchProperty(slug: string, data: object) { await checked(await supabase(`/rest/v1/listory_properties?slug=eq.${slug}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...data, updated_at: new Date().toISOString() }) })); }
+export async function patchProperty(request: Request, slug: string, data: object) {
+  const { agent } = await ownedProperty(request,slug);
+  await checked(await agentRequest(agent,`listory_properties?slug=eq.${slug}&owner_id=eq.${agent.user.id}`, { method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({...data,updated_at:new Date().toISOString()}) }));
+}
+
 export function validateSnapshot(value: unknown, slug: string): { listing: Listing; brand: BrandProfile } {
   const data = value as { listing?: Record<string, unknown>; brand?: Record<string, unknown> };
   if (!data?.listing || !data.brand) throw new PropertyError('The property information is incomplete.');

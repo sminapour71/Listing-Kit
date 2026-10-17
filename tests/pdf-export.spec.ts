@@ -1,4 +1,5 @@
-import { test, expect, type Page, type Download } from '@playwright/test';
+import { type Page, type Download } from '@playwright/test';
+import { test, expect } from './helpers/visual-fixture';
 import { PDFDocument, Duplex, PrintScaling } from 'pdf-lib';
 import { readFile } from 'node:fs/promises';
 import type { PdfFormat } from '../app/lib/pdf-contract';

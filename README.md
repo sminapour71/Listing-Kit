@@ -1,3 +1,5 @@
+> **Agent account update:** See [setup, safe migration, security and testing](docs/agent-accounts.md). Run the additive account migration before deploying this branch. That guide supersedes earlier descriptions below of browser-only branding and browser-secret management. Public URLs and brochure artwork are preserved.
+
 # Listory
 
 A visual prototype for real estate agents, made with Next.js, TypeScript, and Tailwind CSS.

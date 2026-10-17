@@ -15,3 +15,18 @@ export async function POST(request: Request, context: { params: Promise<{ slug: 
     return Response.json({ ...describePhoto(image.width, image.height), url: `${config().url}/storage/v1/object/public/listory-published/${path}` }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) { return propertyFailure(e); }
 }
+
+// Reopen an owned listing as local blobs for the existing brochure/PDF pipeline.
+// Only this listing's known public storage folder can be requested; no arbitrary
+// URL is fetched, and neither account/profile data nor credentials are returned.
+export async function GET(request: Request, context: { params: Promise<{ slug: string }> }) {
+  try {
+    const { slug } = await context.params; await ownedProperty(request,slug);
+    const file = new URL(request.url).searchParams.get('file') || '';
+    if (!/^[a-f0-9-]+\.(jpg|png|webp)$/.test(file)) throw new PropertyError('This image could not be opened.',400);
+    const response = await checked(await supabase(`/storage/v1/object/public/listory-published/${slug}/${file}`));
+    const body = await response.arrayBuffer(); if (body.byteLength > 3_800_000) throw new PropertyError('This image is too large to reopen.');
+    const ext = file.split('.').pop();
+    return new Response(body,{headers:{'Content-Type':`image/${ext==='jpg'?'jpeg':ext}`,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}});
+  } catch(e) { return propertyFailure(e); }
+}

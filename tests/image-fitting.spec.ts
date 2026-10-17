@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './helpers/visual-fixture';
 import sharp from 'sharp';
 import { PDFDocument } from 'pdf-lib';
 import { readFile } from 'node:fs/promises';

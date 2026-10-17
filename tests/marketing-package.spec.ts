@@ -1,4 +1,5 @@
-import { test, expect, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { test, expect } from './helpers/visual-fixture';
 import { readFileSync } from 'node:fs';
 const asset = `data:image/jpeg;base64,${readFileSync('public/images/property-1.jpg').toString('base64')}`;
 const brand = {

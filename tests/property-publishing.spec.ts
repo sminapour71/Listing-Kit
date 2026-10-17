@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { provisionAgent } from './helpers/agent';
 import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import sharp from 'sharp';
@@ -15,8 +16,10 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
   let duplicateSlug: string | undefined;
   const profile = { firstName: 'Avery', lastName: 'Chen', title: 'Realtor', teamName: 'Avery Team', brokerageName: 'Harbour Realty', phone: '604-555-0198', email: 'avery@example.com', website: 'avery.example', instagram: '@avery', primaryColour: '#152f48', secondaryColour: '#efd8b5', headshot: '', personalLogo: '', brokerageLogo: '' };
   for (const [key, file] of [['headshot', 'property-1'], ['personalLogo', 'property-2'], ['brokerageLogo', 'property-3']]) profile[key] = `data:image/jpeg;base64,${(await readFile(`public/images/${file}.jpg`)).toString('base64')}`;
-  await page.addInitScript(p => localStorage.setItem('listingkit.brand-profile.v1', JSON.stringify(p)), profile);
+  const agent=await provisionAgent();
   try {
+  expect((await page.request.post('/api/auth/sign-in',{headers:{origin:'http://127.0.0.1:3100'},data:{email:agent.email,password:agent.password}})).status()).toBe(200);
+  expect((await page.request.put('/api/agent-profile',{headers:{origin:'http://127.0.0.1:3100'},data:{brand:profile}})).status()).toBe(200);
     await page.goto('/#create-listing');
     for (const [label, value] of Object.entries({ 'Property address': address, 'Listing price': '2345000', Bedrooms: '4', Bathrooms: '3.5', 'Square footage': '2875', 'Property taxes': '9876.54', 'Strata fee': '0', Parking: 'Two private spaces', Storage: 'Secure storage', 'Property description': 'REAL PUBLISHED PROPERTY STORY. '.repeat(30) + 'FINAL PUBLISHED SENTENCE.', 'Property features': 'Private garden, Mountain views, Last published feature' })) await page.getByLabel(label, { exact: false }).fill(value);
     const photoFiles = [];
@@ -39,7 +42,9 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
     await expect(page.locator('.brochure-photo-grid>img[data-photo-orientation=portrait]').first()).toHaveCSS('position', 'absolute');
     await page.getByRole('button', { name: 'Publish Property Page', exact: true }).click();
     await expect(page.getByText('Published. Your property link and brochure QR code are ready.', { exact: true })).toBeVisible({ timeout: 100_000 });
-    publication = await page.evaluate(address => JSON.parse(localStorage.getItem(`listory.property.v1:${address.trim().toLowerCase()}`)!), address);
+    const publishedUrl=(await page.locator('.published-url').getAttribute('href'))!;
+    publication={url:publishedUrl,slug:new URL(publishedUrl).pathname.split('/').pop()!,status:'published'};
+    expect(await page.evaluate(()=>Object.keys(localStorage).filter(k=>k.startsWith('listory.property.v1:')))).toEqual([]);
     expect(publication!.url).toBe(`${siteOrigin()}/property/${publication!.slug}`);
     const code = page.getByAltText('QR code for the published property page'); await expect(code).toBeVisible();
     const qr = (await code.getAttribute('src'))!;
@@ -53,12 +58,12 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
       expect(r.ok).toBe(true); expect(r.headers.get('access-control-allow-origin')).toBe('*');
       await route.fulfill({ status: r.status, headers: Object.fromEntries(r.headers), body: Buffer.from(await r.arrayBuffer()) });
     });
-    const duplicate = await request.post('/api/properties', { headers: { origin: 'http://127.0.0.1:3100' }, data: { address } });
+    const duplicate = await page.request.post('/api/properties', { headers: { origin: 'http://127.0.0.1:3100' }, data: { address } });
     expect(duplicate.status()).toBe(201); const duplicateData = await duplicate.json(); duplicateSlug = duplicateData.slug;
     expect(duplicateSlug).not.toBe(publication!.slug); expect(duplicateData.status).toBe('draft');
     const draftResponse = await request.get(new URL(duplicateData.url).pathname); expect(draftResponse.status()).toBe(404);
     expect(await draftResponse.text()).toContain('no longer available');
-    expect((await request.get(`/api/properties/${publication!.slug}`)).status()).toBe(403);
+    expect((await request.get(`/api/properties/${publication!.slug}`)).status()).toBe(401);
     const path = new URL(publication!.url).pathname;
     const response = await publicPage.goto(path); expect(response?.status()).toBe(200);
     await expect(publicPage.locator('.public-hero-image')).toHaveAttribute('data-photo-focal-x', '0.52');
@@ -69,7 +74,8 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
     await expect(publicPage.getByRole('link', { name: 'Call', exact: true })).toHaveAttribute('href', 'tel:6045550198');
     await expect(publicPage.getByRole('link', { name: 'Email', exact: true })).toHaveAttribute('href', 'mailto:avery@example.com');
     await expect(publicPage.locator('.sidebar, .topbar, .brochure-thumbnails')).toHaveCount(0);
-    await expect(publicPage.locator('body')).not.toContainText(publication!.token);
+    await expect(publicPage.locator('body')).not.toContainText(agent.email);
+    for(const privateField of ['management_hash','owner_id','accountEmail'])expect(await response!.text()).not.toContain(privateField);
     for (const [name, width] of [['desktop', 1440], ['tablet', 834], ['mobile', 390]] as const) {
       await publicPage.setViewportSize({ width, height: 1000 });
       for (const image of await publicPage.locator('img[loading=lazy]').all()) await image.scrollIntoViewIfNeeded();
@@ -114,28 +120,34 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
         expect(counts[2]).toBeGreaterThan(100); expect(counts[3]).toBeGreaterThan(100);
       } finally { await task.destroy(); }
     }
-    await page.evaluate(address => { const key = `listory.property.v1:${address.trim().toLowerCase()}`; const saved = JSON.parse(localStorage.getItem(key)!); saved.url = 'https://obsolete.example/property/' + saved.slug; localStorage.setItem(key, JSON.stringify(saved)); }, address);
+    await page.evaluate(({address,slug})=>localStorage.setItem(`listory.property.v1:${address.trim().toLowerCase()}`,JSON.stringify({slug,token:'a'.repeat(64),url:'https://obsolete.example/property/'+slug})),{address,slug:publication!.slug});
     await page.getByRole('button', { name: 'Back to Listing', exact: true }).click();
     await page.getByRole('button', { name: 'Generate Marketing Package', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Update Property Page', exact: true })).toBeEnabled();
     await expect(page.getByAltText('QR code for the published property page')).toBeVisible();
     await expect(page.locator('.published-url')).toHaveAttribute('href', publication!.url);
     await expect(page.getByRole('link', { name: 'View Property Page' })).toHaveAttribute('href', publication!.url);
-    expect(await page.evaluate(address => JSON.parse(localStorage.getItem(`listory.property.v1:${address.trim().toLowerCase()}`)!).url, address)).toBe(publication!.url);
+    // A stale browser entry cannot override the server-verified account connection.
+    expect(await page.evaluate(address => JSON.parse(localStorage.getItem(`listory.property.v1:${address.trim().toLowerCase()}`)!).url, address)).toContain('obsolete.example');
     await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.getByRole('button', { name: 'Copy Link' }).click();
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(publication!.url);
-    const forbiddenStatus = await page.evaluate(async slug => (await fetch(`/api/properties/${slug}`, { method: 'DELETE', headers: { 'x-listory-management': 'a'.repeat(64) } })).status, publication!.slug); expect(forbiddenStatus).toBe(403);
-    const saved = await fetch(`${process.env.SUPABASE_URL}/rest/v1/listory_properties?slug=eq.${publication!.slug}&select=listing,brand`, { headers: { apikey: process.env.SUPABASE_SECRET_KEY! } });
-    const snapshot = (await saved.json())[0];
+    const other=await provisionAgent();const otherContext=await browser.newContext();
+    try{
+      expect((await otherContext.request.post('/api/auth/sign-in',{headers:{origin:'http://127.0.0.1:3100'},data:{email:other.email,password:other.password}})).status()).toBe(200);
+      for(const method of ['get','delete','put'] as const){const denied=await otherContext.request[method](`/api/properties/${publication!.slug}`,{headers:{origin:'http://127.0.0.1:3100','x-listory-management':'a'.repeat(64)},...(method==='put'?{data:{}}:{})});expect(denied.status()).toBe(404);}
+      const otherProfile=await otherContext.request.get('/api/agent-profile');expect((await otherProfile.json()).brand).toEqual({});
+    }finally{await otherContext.close();await other.cleanup();}
+    const saved = await fetch(`${process.env.SUPABASE_URL}/rest/v1/listory_properties?slug=eq.${publication!.slug}&select=listing,brand,owner_id`, { headers: { apikey: process.env.SUPABASE_SECRET_KEY! } });
+    const snapshot = (await saved.json())[0];expect(snapshot.owner_id).toBe(agent.id);
     expect(snapshot.listing.photos.map(p => p.orientation)).toEqual(['landscape', 'portrait', 'landscape', 'square', 'landscape', 'portrait']);
     expect(snapshot.listing.photos[0].width).toBe(2400);
     expect(snapshot.listing.photos[0].focalX).toBe(.52); expect(snapshot.listing.photos[0].focalY).toBe(.5);
-    const invalidPosition = await page.evaluate(async ({ slug, token, snapshot }) => (await fetch(`/api/properties/${slug}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-listory-management': token }, body: JSON.stringify({ ...snapshot, listing: { ...snapshot.listing, photos: [{ ...snapshot.listing.photos[0], focalX: -1 }, ...snapshot.listing.photos.slice(1)] } }) })).status, { slug: publication!.slug, token: publication!.token, snapshot });
+    const invalidPosition = await page.evaluate(async ({ slug, token, snapshot }) => (await fetch(`/api/properties/${slug}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...snapshot, listing: { ...snapshot.listing, photos: [{ ...snapshot.listing.photos[0], focalX: -1 }, ...snapshot.listing.photos.slice(1)] } }) })).status, { slug: publication!.slug, token: publication!.token, snapshot });
     expect(invalidPosition).toBe(400);
     for (const index of [1, 2, 3]) {
       const photos = [snapshot.listing.photos[index], ...snapshot.listing.photos.filter((_: unknown, i: number) => i !== index)];
-      const status = await page.evaluate(async ({ slug, token, snapshot }) => (await fetch(`/api/properties/${slug}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'x-listory-management': token }, body: JSON.stringify(snapshot) })).status, { slug: publication!.slug, token: publication!.token, snapshot: { ...snapshot, listing: { ...snapshot.listing, photos } } });
+      const status = await page.evaluate(async ({ slug, token, snapshot }) => (await fetch(`/api/properties/${slug}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(snapshot) })).status, { slug: publication!.slug, token: publication!.token, snapshot: { ...snapshot, listing: { ...snapshot.listing, photos } } });
       expect(status).toBe(200);
       for (const width of [1440, 834, 390]) {
         await publicPage.setViewportSize({ width, height: 1000 }); await publicPage.reload();
@@ -145,6 +157,13 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
         expect(await publicPage.locator('.public-hero-image').evaluate((img: HTMLImageElement) => img.getBoundingClientRect().height)).toBeLessThanOrEqual(1101);
       }
     }
+    await page.goto('/');await page.reload();const ownCard=page.locator('.listing-card').filter({hasText:address}).filter({has:page.locator('.status.active')});await expect(ownCard).toBeVisible();await ownCard.getByRole('button',{name:'Edit Listing',exact:true}).click();
+    await expect(page.getByLabel('Property address',{exact:false})).toHaveValue(address);
+    await expect(page.locator('.listing-photo-row')).toHaveCount(6);
+    await page.getByRole('button',{name:'Generate Marketing Package',exact:true}).click();
+    await expect(page.locator('.published-url')).toHaveAttribute('href',publication!.url);
+    await expect(page.locator('.brochure-cover-image')).toHaveAttribute('src',/^blob:/);
+    for(const label of [/Standard 8.5/,/Folded 11/]){await page.getByRole('button',{name:'Download PDF',exact:true}).click();const file=page.waitForEvent('download',{timeout:65_000});await page.getByRole('button',{name:label}).click();expect(await (await file).failure()).toBeNull();}
     await page.getByRole('button', { name: 'Unpublish Property Page' }).click();
     await expect(page.locator('.publish-message')).toContainText('Unpublished.');
     await publicPage.reload(); await expect(publicPage.getByRole('heading', { name: /no longer available/ })).toBeVisible();
@@ -153,7 +172,7 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
     await expect(page.getByAltText('Property webpage QR code')).toHaveCount(0);
     await fresh.close();
   } finally {
-    if (!publication) publication = await page.evaluate(address => { const value = localStorage.getItem(`listory.property.v1:${address.trim().toLowerCase()}`); return value ? JSON.parse(value) : undefined; }, address).catch(() => undefined);
+
     if (duplicateSlug) await fetch(`${process.env.SUPABASE_URL}/rest/v1/listory_properties?slug=eq.${duplicateSlug}`, { method: 'DELETE', headers: { apikey: process.env.SUPABASE_SECRET_KEY! } });
     if (publication) {
       // Clean up only this test's random, uniquely named listing and its assets.
@@ -165,5 +184,6 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
       if (urls.length) await fetch(`${base}/storage/v1/object/listory-published`, { method: 'DELETE', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ prefixes: urls.map(url => url.slice(prefix.length)) }) });
       await fetch(`${base}/rest/v1/listory_properties?slug=eq.${publication.slug}`, { method: 'DELETE', headers });
     }
+    await agent.cleanup();
   }
 });
