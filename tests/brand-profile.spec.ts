@@ -27,7 +27,7 @@ test('contact details, both colours and all images are reusable after save and r
   await expect(page.locator('.brand-preview-contact')).toContainText('jamie@example.com');
   await expect(page.locator('.brand-preview-banner')).toHaveCSS('background-color', 'rgb(18, 52, 86)');
   await page.getByRole('button', { name: 'Save Brand Profile' }).click();
-  await expect(page.getByRole('status')).toContainText('Brand Profile saved to your account');
+  await expect(page.getByRole('status').filter({hasText:'Brand Profile saved to your account'})).toContainText('Brand Profile saved to your account');
   await expect(page.locator('.profile strong')).toHaveText('Jamie Davis');
   await page.reload();
   await expect(page.getByLabel('First name', { exact: true })).toHaveValue('Jamie');

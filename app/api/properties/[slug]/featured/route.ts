@@ -1,0 +1,5 @@
+import {agentRequest} from '../../../../lib/server/auth';
+import {ensureAgentProfile} from '../../../../lib/server/agent-profile';
+import {portfolioChecked} from '../../../../lib/server/portfolio';
+import {ownedProperty,propertyFailure,readJson,sameOrigin,PropertyError} from '../../../../lib/server/properties';
+export async function PATCH(request:Request,{params}:{params:Promise<{slug:string}>}){try{sameOrigin(request);const {slug}=await params;const {agent}=await ownedProperty(request,slug);const input=await readJson(request,1000);if(typeof input.featured!=='boolean')throw new PropertyError('Choose whether to feature this listing.');await ensureAgentProfile(agent);await portfolioChecked(await agentRequest(agent,`listory_properties?slug=eq.${slug}&owner_id=eq.${agent.user.id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({portfolio_featured:input.featured,updated_at:new Date().toISOString()})}));return Response.json({saved:true},{headers:{'Cache-Control':'private, no-store'}});}catch(e){return propertyFailure(e)}}
