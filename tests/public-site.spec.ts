@@ -36,9 +36,9 @@ test('real public cards, active agent search, today events, attendee privacy and
   expect((await page.request.post('/api/auth/sign-in',{headers:{origin},data:{email:agent.email,password:agent.password}})).status()).toBe(200);
   const image=(await readFile('public/images/property-1.jpg')).toString('base64');const brand={...sampleBrand,firstName:'Public',lastName:'Check '+suffix,teamName:'Harbour '+suffix,brokerageName:'Public Brokerage',headshot:'data:image/jpeg;base64,'+image};
   expect((await page.request.put('/api/agent-profile',{headers:{origin},data:{brand}})).status()).toBe(200);
-  expect((await page.request.put('/api/agent-portfolio',{headers:{origin},data:{portfolio_slug:portfolio,portfolio_bio:'A test portfolio.',portfolio_subareas:['Public Test Neighbourhood '+suffix],portfolio_published:true}})).status()).toBe(200);
+  expect((await page.request.put('/api/agent-portfolio',{headers:{origin},data:{portfolio_slug:portfolio,portfolio_bio:'A test portfolio.',portfolio_subareas:['Yaletown','Public Test Neighbourhood '+suffix],portfolio_published:true}})).status()).toBe(200);
   for(let i=0;i<4;i++){
-   const address=`Public Discovery ${suffix} Home ${i}, Vancouver, BC`;addresses.push(address);
+   const address=`Public Discovery ${suffix} Home ${i}, ${i===0?'Yaletown, ':''}Vancouver, BC`;addresses.push(address);
    const created=await page.request.post('/api/properties',{headers:{origin},data:{address,sample:true}});expect(created.status()).toBe(201);const {slug}=await created.json();slugs.push(slug);
    const upload=await page.request.post(`/api/properties/${slug}/assets`,{headers:{origin,'Content-Type':'image/jpeg'},data:await readFile('public/images/property-1.jpg')});expect(upload.ok()).toBe(true);const asset=await upload.json();
    expect((await page.request.put(`/api/properties/${slug}`,{headers:{origin},data:{listing:{...sampleListing,address,photos:[{id:'cover',name:'Test cover',...asset,focalX:.6,focalY:.4}],floorPlan:null},brand:{...sampleBrand,firstName:'Public',lastName:'Check '+suffix}}})).status()).toBe(200);
@@ -48,10 +48,14 @@ test('real public cards, active agent search, today events, attendee privacy and
   expect((await guest.request.post(`/api/open-house-sign-in/${id}`,{headers:{origin},data:{firstName:privateVisitor,lastName:'Visitor',email:`visitor-${suffix}@example.test`,phone:'6045550198',workingWithRealtor:'no',buyerStatus:'browsing',notes:'Private attendee note',consent:true,website:''}})).status()).toBe(200);
   await guest.route('https://*.supabase.co/**',async route=>{const r=await fetch(route.request().url());await route.fulfill({status:r.status,headers:Object.fromEntries(r.headers),body:Buffer.from(await r.arrayBuffer())});});
   const publicPage=await guest.newPage();
-  for(const route of ['/','/fresh','/buy','/agents?q='+encodeURIComponent(suffix),'/open-houses']){
+  for(const route of ['/','/fresh','/buy','/agents?q='+encodeURIComponent(suffix),'/neighbourhoods/yaletown','/open-houses']){
    const r=await publicPage.goto(route);expect(r?.status()).toBe(200);expect(await publicPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1)).toBe(true);const html=await r!.text();for(const secret of [agent.id,agent.email,privateNote,privateVisitor,draftAddress,'submission_fingerprint','owner_id'])expect(html).not.toContain(secret);
    if(['/','/fresh','/buy'].includes(route)){const cards=publicPage.locator('.public-home-card,.agent-property-card').filter({hasText:addresses[0]});await expect(cards.first()).toBeVisible();}
    if(route.startsWith('/agents')){await expect(publicPage.locator('.public-agent-card').filter({hasText:publicName})).toBeVisible();}
+   if(route==='/neighbourhoods/yaletown'){
+    for(const id of ['yaletown-fresh','yaletown-current','yaletown-open-houses']){await expect(publicPage.locator('#'+id+' .public-home-card').filter({hasText:addresses[0]})).toHaveCount(1);await expect(publicPage.locator('#'+id)).not.toContainText(addresses[1]);}
+    await expect(publicPage.locator('#yaletown-agents .public-agent-card').filter({hasText:publicName})).toHaveCount(1);
+   }
   }
   const eventCard=publicPage.locator('.public-home-card').filter({hasText:addresses[0]});await expect(eventCard).toContainText('1:00 PM');await eventCard.getByRole('link').click();await expect(publicPage).toHaveURL(origin+'/property/'+slugs[0]);await publicPage.locator('.public-logo').click();await expect(publicPage).toHaveURL(origin+'/');
   await publicPage.locator('.public-home-card').filter({hasText:addresses[0]}).first().getByRole('link').first().click();await expect(publicPage).toHaveURL(origin+'/property/'+slugs[0]);await publicPage.locator('.public-logo').click();
@@ -61,9 +65,14 @@ test('real public cards, active agent search, today events, attendee privacy and
 
   await publicPage.goto('/agents?q='+suffix);await publicPage.locator('.public-agent-card').filter({hasText:publicName}).click();await expect(publicPage).toHaveURL(origin+'/agent/'+portfolio);await expect(publicPage.locator('h1')).toHaveText(publicName);
   await page.goto('/');await expect(page.locator('h1')).toContainText('Every listing');await expect(page.locator('.public-account-link')).toHaveAttribute('href','/workspace');if(info.project.name==='mobile')await page.getByRole('button',{name:'Open navigation'}).click();await page.locator('.public-account-link').click();await expect(page).toHaveURL(origin+'/workspace');await expect(page.getByRole('heading',{name:/^Listings/})).toBeVisible();
-  await page.goto('/workspace#brand-profile');await expect(page.getByLabel('First name',{exact:true})).toHaveValue('Public');
+  await page.goto('/workspace#brand-profile');await page.reload();await expect(page.getByLabel('First name',{exact:true})).toHaveValue('Public');
   // Closing an event removes it from public discovery, preserving the property.
   expect((await page.request.patch('/api/open-houses/'+id,{headers:{origin},data:{state:'closed'}})).status()).toBe(200);
   await publicPage.goto('/open-houses');await expect(publicPage.locator('.public-home-card').filter({hasText:addresses[0]})).toHaveCount(0);
+  // A fuzzy specialty still matches directory search, but must not qualify for this guide.
+  expect((await page.request.put('/api/agent-portfolio',{headers:{origin},data:{portfolio_slug:portfolio,portfolio_bio:'A test portfolio.',portfolio_subareas:['Yaletown Realty'],portfolio_published:true}})).status()).toBe(200);
+  await publicPage.goto('/neighbourhoods/yaletown');
+  await expect(publicPage.locator('#yaletown-agents .public-agent-card').filter({hasText:publicName})).toHaveCount(0);
+  await expect(publicPage.locator('#yaletown-open-houses .public-home-card').filter({hasText:addresses[0]})).toHaveCount(0);
  }finally{await guest.close();await agent.cleanup();}
 });

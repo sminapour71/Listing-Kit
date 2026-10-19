@@ -73,8 +73,10 @@ old PDF is rewritten.
 
 ## Branch scope and validation
 
-Built from production main on `feature/listory-production-domain`. The unmerged
-Yaletown guide stays on its separate feature branch. No production merge/deploy,
+Updated from production main (including the released Yaletown guide) on
+`feature/listory-production-domain`. Yaletown guide files and metadata remain
+identical to main; the neighbourhood index retains its guide link plus canonical
+metadata. No production merge/deploy,
 new database migration, credential or visual change is included here.
 
 `node --test scripts/site-url.test.mjs scripts/auth-options.test.mjs`
@@ -88,10 +90,15 @@ their own records. They decode property QR codes in both PDF formats, decode the
 Open House QR, exercise portfolio clipboard URLs and preserve attendee privacy.
 The canonical test uses existing published public pages without changing them.
 
-Final validation: production build and TypeScript passed; all 12 script test
-files passed (`node --test scripts/*.test.mjs`); all 22 relevant desktop/mobile
-browser tests passed. Next.js normalizes the root canonical to
+Final validation: production build and TypeScript passed; all 13 script test
+files passed (`node --test scripts/*.test.mjs`); all 26 relevant desktop/mobile
+browser tests passed, including Yaletown guide and reduced-motion regressions. Next.js normalizes the root canonical to
 `https://listory.ca` without a trailing slash. Existing public property and
 portfolio URLs returned successfully on both listory.ca and the old Vercel
 alias. Delivered auth emails and the Supabase Auth redirect allowlist still
 require the manual checks described above.
+
+Main synchronization: merged `fc7547623923dd589d97afe10c61db8df2542940`.
+The only conflict was the neighbourhood index; retained main’s complete guide
+introduction/link and the domain branch’s canonical metadata helper. The PDF
+bundle check was rerun successfully after the production build finished.
