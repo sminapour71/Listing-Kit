@@ -1,5 +1,8 @@
 import type { NextConfig } from 'next';
 const config: NextConfig = {
+  async redirects() {
+    return [{ source: '/login', destination: '/sign-in', permanent: true }];
+  },
   serverExternalPackages: ['@sparticuz/chromium', 'playwright-core'],
   outputFileTracingIncludes: {
     '/api/brochure-pdf': [
