@@ -11,7 +11,7 @@ async function seedBrand(page: Page) {
   await page.addInitScript(profile => localStorage.setItem('listingkit.brand-profile.v1', JSON.stringify(profile)), brand);
 }
 async function createListing(page: Page) {
-  await page.goto('/#create-listing');
+  await page.goto('/workspace#create-listing');
   await expect(page.getByRole('heading', { name: 'Create Listing', exact: true })).toBeVisible();
   const fields = { 'Property address': '123 Test Avenue, Vancouver, BC', 'Listing price': '1975000', Bedrooms: '3', Bathrooms: '2.5', 'Square footage': '1586', 'Property taxes': '8475.60', 'Strata fee': '425', Parking: '2 underground spaces', Storage: 'Locker 42', 'Property description': 'Light-filled living in Vancouver.\nA private terrace overlooks the garden.', 'Property features': 'Private terrace, EV charging\nAir conditioning' };
   for (const [label, value] of Object.entries(fields)) await page.getByLabel(label, { exact: false }).fill(value);
@@ -78,7 +78,7 @@ test('renders a PDF floor plan inside the brochure, with no external viewer', as
 });
 
 test('handles missing photos, floor plan, and branding honestly', async ({ page }) => {
-  await page.goto('/#create-listing');
+  await page.goto('/workspace#create-listing');
   await page.getByLabel('Property address', { exact: false }).fill('An empty listing');
   await generate(page);
   await expect(page.locator('.package-summary')).toContainText('SAMPLE BRANDING');
@@ -90,7 +90,7 @@ test('handles missing photos, floor plan, and branding honestly', async ({ page 
 });
 
 test('offers a sample brochure with the current saved brand, including on a fresh deep link', async ({ page }) => {
-  await seedBrand(page); await page.goto('/');
+  await seedBrand(page); await page.goto('/workspace');
   await page.getByRole('button', { name: 'Preview sample brochure', exact: true }).first().click();
   await expect(page.locator('.package-summary')).toContainText('SAMPLE LISTING');
   await expect(page.getByRole('article')).toContainText('Alex Morgan');
@@ -138,7 +138,7 @@ test('all four pages fit narrow phones and desktop, with long content and readab
 
 test('uses saved brand colours even if contact details have not been filled in', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('listingkit.brand-profile.v1', JSON.stringify({ primaryColour: '#123456', secondaryColour: '#654321' })));
-  await page.goto('/#marketing-package');
+  await page.goto('/workspace#marketing-package');
   await expect(page.getByRole('heading', { name: 'Marketing Package', exact: true })).toBeVisible();
   await expect(page.getByRole('article')).toBeVisible();
   await expect(page.locator('.package-summary')).toContainText('SAVED BRAND PROFILE');

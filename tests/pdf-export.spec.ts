@@ -23,7 +23,7 @@ async function parsePdf(download: Download) {
   } finally { await task.destroy(); }
   return { bytes, pages, document: await PDFDocument.load(bytes) };
 }
-async function openPackage(page: Page) { await page.goto('/#marketing-package'); await expect(page.getByRole('heading', { name: 'Marketing Package', exact: true })).toBeVisible(); }
+async function openPackage(page: Page) { await page.goto('/workspace#marketing-package'); await expect(page.getByRole('heading', { name: 'Marketing Package', exact: true })).toBeVisible(); }
 async function downloadPdf(page: Page, format: PdfFormat) {
   await page.getByRole('button', { name: 'Download PDF', exact: true }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
@@ -53,7 +53,7 @@ function checkPrintBounds(items: { text: string; x: number; y: number; width: nu
   }
 }
 async function buildListing(page: Page, count: number, description?: string) {
-  await page.goto('/#create-listing');
+  await page.goto('/workspace#create-listing');
   await page.reload();
   await expect(page.getByRole('heading', { name: 'Create Listing', exact: true })).toBeVisible();
   const data = { 'Property address': '980 Test Way, Vancouver, BC', 'Listing price': '2345000', Bedrooms: '4', Bathrooms: '3.5', 'Square footage': '2875', 'Property taxes': '9876.54', 'Strata fee': '210', Parking: 'Two private parking spaces', Storage: 'Secure storage room', 'Property description': description || 'DYNAMIC DESCRIPTION: light-filled spaces and mountain views. A home for every chapter. THE FINAL SENTENCE.', 'Property features': 'First unique feature, Private garden, Last unique feature' };

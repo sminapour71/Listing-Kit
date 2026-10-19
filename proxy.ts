@@ -24,4 +24,4 @@ export async function proxy(request: NextRequest) {
   await auth.auth.getUser();
   return response;
 }
-export const config = { matcher: ['/', '/sign-in', '/create-account', '/forgot-password', '/reset-password', '/api/properties/:path*', '/api/agent-profile', '/api/agents', '/api/agent-portfolio/:path*', '/api/open-houses/:path*'] };
+export const config = { matcher: ['/', '/workspace/:path*', '/buy', '/agents', '/fresh', '/open-houses', '/guides', '/neighbourhoods', '/for-agents', '/agent/:path*', '/property/:path*', '/open-house/:path*', '/sign-in', '/create-account', '/forgot-password', '/reset-password', '/api/properties/:path*', '/api/agent-profile', '/api/agents', '/api/agent-portfolio/:path*', '/api/open-houses/:path*'] };

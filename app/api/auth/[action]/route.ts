@@ -19,7 +19,7 @@ export async function POST(request: Request, context: { params: Promise<{ action
       if (typeof password !== 'string' || password.length < 8 || password.length > 128 || input.confirmPassword !== password) throw new PropertyError('Enter matching passwords with at least 8 characters.');
       const { error } = await agent.client.auth.updateUser({ password });
       if (error) throw new PropertyError(error.code === 'same_password' ? 'Choose a password different from your previous one.' : 'Your password could not be updated. Request a new reset link and try again.');
-      return reply({ redirect: '/?password=updated' });
+      return reply({ redirect: '/workspace?password=updated' });
     }
     const email = typeof input.email === 'string' ? input.email.trim().toLowerCase() : '';
     if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new PropertyError('Enter a valid email address.');

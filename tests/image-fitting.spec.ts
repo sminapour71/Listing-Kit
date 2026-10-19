@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 test('fits mixed three-photo compositions without gaps, overlap, or changing page size', async ({ page }, info) => {
   test.setTimeout(90_000);
   for (const portraitFirst of [false, true]) {
-    await page.goto('/#create-listing'); await page.reload();
+    await page.goto('/workspace#create-listing'); await page.reload();
     await page.getByLabel('Property address', { exact: false }).fill('Photo Fitting Verification, Vancouver, BC');
     const dimensions = [[2400, 600], ...(portraitFirst ? [[500, 900], [900, 600], [600, 600]] : [[900, 600], [500, 900], [600, 600]])];
     const files = [];

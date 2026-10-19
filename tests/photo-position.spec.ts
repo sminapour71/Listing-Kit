@@ -5,7 +5,7 @@ import { createCanvas } from '@napi-rs/canvas';
 
 test('saves individual focal positions with mouse or touch and uses them in both real PDFs', async ({ page }, info) => {
   test.setTimeout(150_000);
-  await page.goto('/#create-listing');
+  await page.goto('/workspace#create-listing');
   await page.getByLabel('Property address', { exact: false }).fill('Photo Position Verification, Vancouver, BC');
   const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1000"><rect width="1800" height="1000" fill="#bfc4c2"/><rect width="1800" height="20" fill="#ff0000"/><rect y="980" width="1800" height="20" fill="#0000ff"/></svg>';
   const supporting = await sharp({ create: { width: 1800, height: 1000, channels: 3, background: '#849283' } }).png().toBuffer();

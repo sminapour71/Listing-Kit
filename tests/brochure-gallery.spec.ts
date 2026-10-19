@@ -8,7 +8,7 @@ test('balances all gallery counts and orientations, with fixed composition and m
   const colours = [[190, 45, 62], [30, 128, 178], [149, 58, 194], [219, 133, 26], [70, 151, 80], [185, 75, 130], [48, 70, 166], [170, 159, 38], [23, 145, 141], [137, 83, 42], [98, 115, 188], [182, 110, 170], [107, 165, 42], [24, 107, 167], [188, 64, 22]];
   const cases = [[1.5], [.6], [1.5, 1.5], [.6, .6], [1.5, .6], [1.5, 1.5, 1.5], [1.5, .6, 1.5], [1.5,1.5,1.5,1.5], [.6,1.5,1.5,1.5], [1.5,.6,1.5,1.5], [1.5,1.5,.6,1.5], [1.5,1.5,1.5,.6], [.6,1.5,.6,1.5], [.6,.6,.6,.6], [1.5,.6,1,1.8,.65], Array.from({length:15},(_,i)=>[.6,1.5,1,2.5][i%4])];
   for (const [index, ratios] of cases.entries()) {
-    await page.goto('/#create-listing'); await page.reload();
+    await page.goto('/workspace#create-listing'); await page.reload();
     await page.getByLabel('Property address', { exact: false }).fill(`Gallery ${index}, Vancouver, BC`);
     await page.getByLabel('Property description').fill(index === 14 ? 'A considered home with beautiful spaces and thoughtful details. '.repeat(17) + 'FINAL GALLERY SENTENCE.' : 'Consider every detail. A beautiful home, with spaces designed for living.');
     const files = [{name:'cover.png',mimeType:'image/png',buffer:await sharp({create:{width:1800,height:1000,channels:3,background:'#7a8580'}}).png().toBuffer()}];

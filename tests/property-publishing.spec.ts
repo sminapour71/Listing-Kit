@@ -20,7 +20,7 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
   try {
   expect((await page.request.post('/api/auth/sign-in',{headers:{origin:'http://127.0.0.1:3100'},data:{email:agent.email,password:agent.password}})).status()).toBe(200);
   expect((await page.request.put('/api/agent-profile',{headers:{origin:'http://127.0.0.1:3100'},data:{brand:profile}})).status()).toBe(200);
-    await page.goto('/#create-listing');
+    await page.goto('/workspace#create-listing');
     for (const [label, value] of Object.entries({ 'Property address': address, 'Listing price': '2345000', Bedrooms: '4', Bathrooms: '3.5', 'Square footage': '2875', 'Property taxes': '9876.54', 'Strata fee': '0', Parking: 'Two private spaces', Storage: 'Secure storage', 'Property description': 'REAL PUBLISHED PROPERTY STORY. '.repeat(30) + 'FINAL PUBLISHED SENTENCE.', 'Property features': 'Private garden, Mountain views, Last published feature' })) await page.getByLabel(label, { exact: false }).fill(value);
     const photoFiles = [];
     for (const [i, [width, height]] of [[3600, 900], [900, 1500], [1800, 1200], [1100, 1100], [2800, 700], [700, 1300]].entries()) {
@@ -157,7 +157,7 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
         expect(await publicPage.locator('.public-hero-image').evaluate((img: HTMLImageElement) => img.getBoundingClientRect().height)).toBeLessThanOrEqual(1101);
       }
     }
-    await page.goto('/');await page.reload();const ownCard=page.locator('.listing-card').filter({hasText:address}).filter({has:page.locator('.status.active')});await expect(ownCard).toBeVisible();await ownCard.getByRole('button',{name:'Edit Listing',exact:true}).click();
+    await page.goto('/workspace');await page.reload();const ownCard=page.locator('.listing-card').filter({hasText:address}).filter({has:page.locator('.status.active')});await expect(ownCard).toBeVisible();await ownCard.getByRole('button',{name:'Edit Listing',exact:true}).click();
     await expect(page.getByLabel('Property address',{exact:false})).toHaveValue(address);
     await expect(page.locator('.listing-photo-row')).toHaveCount(6);
     await page.getByRole('button',{name:'Generate Marketing Package',exact:true}).click();
