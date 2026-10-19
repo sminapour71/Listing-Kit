@@ -8,7 +8,7 @@ import type { BrandProfile } from '../brand-profile';
 import { config, PropertyError } from './config';
 import { requireAgent, agentRequest } from './auth';
 export { config, PropertyError } from './config';
-export type PropertyRecord = { slug: string; status: 'draft' | 'published'; listing: Listing; brand: BrandProfile; sample: boolean; owner_id?: string; updated_at?: string };
+export type PropertyRecord = { slug: string; status: 'draft' | 'published'; listing: Listing; brand: BrandProfile; sample: boolean; owner_id?: string; updated_at?: string; first_published_at?:string|null; current_until?:string|null; publication_date_unknown?:boolean };
 export async function supabase(path: string, init: RequestInit = {}) {
   const { url, key } = config();
   const response = await fetch(url + path, { ...init, headers: { apikey: key, ...init.headers }, cache: 'no-store', signal: AbortSignal.timeout(25_000) });
@@ -55,7 +55,7 @@ export async function getProperty(slug: string): Promise<PropertyRecord | null> 
   const response = await checked(await supabase(`/rest/v1/listory_properties?slug=eq.${slug}&status=eq.published&select=slug,status,listing,brand,sample`));
   const rows = await response.json(); return rows[0] || null;
 }
-export const OWNED_PROPERTY_FIELDS = 'slug,status,listing,brand,sample,owner_id,updated_at';
+export const OWNED_PROPERTY_FIELDS = 'slug,status,listing,brand,sample,owner_id,updated_at,first_published_at,current_until,publication_date_unknown';
 export async function ownedProperty(_request: Request, slug: string) {
   const agent = await requireAgent();
   if (!/^[a-z0-9-]{1,110}$/.test(slug)) throw new PropertyError('Property not found in this account.',404);

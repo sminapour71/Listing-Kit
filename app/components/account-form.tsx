@@ -17,6 +17,6 @@ export default function AccountForm({ mode, next = '/', linkError = false }: { m
       {error&&<p className="brand-error" role="alert">{error}</p>}{message&&<p className="account-message" role="status">{message}</p>}
       <button className="primary" type="submit" disabled={busy}>{busy?'Please wait…':mode==='sign-in'?'Sign In':mode==='sign-up'?'Create Account':mode==='forgot-password'?'Send Reset Link':'Save New Password'}</button>
     </form>
-    <div className="account-links">{mode==='sign-in'?<><a href="/forgot-password">Forgot password?</a><a href="/create-account">Create an account</a></>:<a href="/sign-in">Back to Sign In</a>}</div>
+    <div className="account-links"><a href="/fresh">Browse Fresh Listings</a>{mode==='sign-in'?<><a href="/forgot-password">Forgot password?</a><a href="/create-account">Create an account</a></>:<a href="/sign-in">Back to Sign In</a>}</div>
   </section><p className="account-caption">A considered workspace for exceptional real estate.</p></main>;
 }
