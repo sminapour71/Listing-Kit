@@ -2,7 +2,7 @@
 
 ## Use
 
-Sign in, then choose **Listory Agents** below **Brand Profile** in the existing sidebar. On a phone open the navigation menu first. The workspace link is https://listing-kit-pink.vercel.app/#listory-agents.
+Sign in, then choose **Listory Agents** below **Brand Profile** in the existing sidebar. On a phone open the navigation menu first. The workspace link is https://listory.ca/workspace#listory-agents.
 
 Type in **Search Listory Agents**. Search updates after a short 200 ms pause, matches names first and also matches public team, brokerage and subareas. It is a literal, case-insensitive substring search, not a wildcard or ranking system. Stale search requests are cancelled so old results cannot replace a new search. No matches shows **No Listory agents found.**, with a Clear search action.
 

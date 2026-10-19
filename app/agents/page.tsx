@@ -1,10 +1,11 @@
+import {publicPageMetadata} from '../lib/public-metadata';
 import type {Metadata} from 'next';
 import PublicShell from '../components/public-shell';
 import {PublicAgentCard} from '../components/public-cards';
 import {getDirectoryAgents} from '../lib/server/directory';
 import {queryText,type DiscoveryQuery} from '../lib/public-discovery';
 export const dynamic='force-dynamic';
-export const metadata:Metadata={title:'Agents on Listory',description:'Meet participating Listory agents. Search by name, team, brokerage or neighbourhood.'};
+export const metadata:Metadata={...publicPageMetadata('/agents'),title:'Agents on Listory',description:'Meet participating Listory agents. Search by name, team, brokerage or neighbourhood.'};
 export default async function PublicAgents({searchParams}:{searchParams:Promise<DiscoveryQuery>}){
  const q=await searchParams,search=queryText(q,'q',120).trim(),offsetText=queryText(q,'offset'),offset=/^\d{1,7}$/.test(offsetText)&&Number(offsetText)<=1_000_000?Number(offsetText):0;
  const result=await getDirectoryAgents(search,offset).then(data=>({data,error:false})).catch(()=>({data:{agents:[],nextOffset:null},error:true}));

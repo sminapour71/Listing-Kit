@@ -1,10 +1,11 @@
+import {publicPageMetadata} from '../lib/public-metadata';
 import type {Metadata} from 'next';
 import PublicShell from '../components/public-shell';
 import {PublicPropertyCard} from '../components/public-cards';
 import {getCurrentListings} from '../lib/server/public-discovery';
 import {queryText,numericFilter,type DiscoveryQuery} from '../lib/public-discovery';
 export const dynamic='force-dynamic';
-export const metadata:Metadata={title:'Homes on Listory',description:'Explore homes presented on Listory.'};
+export const metadata:Metadata={...publicPageMetadata('/buy'),title:'Homes on Listory',description:'Explore homes presented on Listory.'};
 export default async function Buy({searchParams}:{searchParams:Promise<DiscoveryQuery>}){
  const q=await searchParams,location=queryText(q,'location'),beds=queryText(q,'beds'),min=queryText(q,'min'),max=queryText(q,'max'),minimum=numericFilter(min),maximum=numericFilter(max),bedrooms=numericFilter(beds);
  let failed=false;const all=await getCurrentListings().catch(()=>{failed=true;return [];});

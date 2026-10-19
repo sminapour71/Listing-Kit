@@ -8,7 +8,7 @@ The existing application, property-page QR, brochure artwork, photo positions an
 
 After Vercel finishes deploying the latest main commit:
 
-1. Open https://listing-kit-pink.vercel.app and sign in.
+1. Open https://listory.ca and sign in.
 2. Under **Listings**, choose **Edit Listing** on one of your own published listings.
 3. Scroll below the listing form to **Open House**.
 4. Enter **Date**, **Start time**, **End time**, and optional private event notes. All times are **Pacific Time (Vancouver)**, with start/end on the same day.
@@ -24,7 +24,7 @@ Optional event notes are **private to the agent**, not visitor instructions. Vis
 
 ## Visitor experience
 
-The public URL is `https://listing-kit-pink.vercel.app/open-house/<random-event-id>` (or the configured `NEXT_PUBLIC_SITE_URL`). It needs no Listory account.
+The public URL is `https://listory.ca/open-house/<random-event-id>` (or the configured `NEXT_PUBLIC_SITE_URL`). It needs no Listory account.
 
 The page shows a property photo, address, event date/time and the public agent branding. The visitor enters first/last name, email and phone; answers whether they work with a Realtor; chooses buyer/seller status; and can add a note.
 

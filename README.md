@@ -23,7 +23,7 @@ This prototype has no accounts, payments, CRM, or MLS integration. Unpublished l
 
 ## Preview the brochure online
 
-Open https://listing-kit-pink.vercel.app/#marketing-package . This opens the sample property with the Brand Profile saved in that browser. If no profile has been saved, clearly labelled sample realtor details are shown.
+Open https://listory.ca/workspace#marketing-package . This opens the sample property with the Brand Profile saved in that browser. If no profile has been saved, clearly labelled sample realtor details are shown.
 
 To use your own property:
 
@@ -42,7 +42,7 @@ Vercel normally deploys updates pushed to the connected GitHub `main` branch aut
 
 ## Download and print a brochure
 
-1. Open https://listing-kit-pink.vercel.app/#marketing-package in the browser where you saved your Brand Profile. This opens the sample property. To export your own property, create a listing, add the details and uploads, and click **Generate Marketing Package**.
+1. Open https://listory.ca/workspace#marketing-package in the browser where you saved your Brand Profile. This opens the sample property. To export your own property, create a listing, add the details and uploads, and click **Generate Marketing Package**.
 2. Click **Download PDF**.
 3. Choose **Standard 8.5 × 11** or **Folded 11 × 17**.
 4. Wait for **Preparing brochure...** to finish. Your browser downloads the PDF to its usual **Downloads** folder. Names use the street address, for example `2847-West-35th-Avenue-Listory-Letter.pdf` or `2847-West-35th-Avenue-Listory-Folded.pdf`.
@@ -146,7 +146,7 @@ Requires Node.js 24 LTS, matching the tested environment and the version selecte
 
 ## Publishing later
 
-The application uses Vercel's standard Next.js settings. Existing brochure previews and PDFs work without Supabase. Property publishing needs the server-only Supabase settings described below. The current online prototype is at https://listing-kit-pink.vercel.app .
+The application uses Vercel's standard Next.js settings. Existing brochure previews and PDFs work without Supabase. Property publishing needs the server-only Supabase settings described below. The production site is at https://listory.ca .
 
 ## Demo photo credits
 
@@ -182,7 +182,7 @@ For local Windows development, an installed Microsoft Edge or Google Chrome is d
 
 Run `supabase/setup.sql` in Supabase's SQL Editor. It creates one private JSON-backed listing table with row-level security and no anonymous/authenticated access, plus one bucket for deliberately published images. Only the server's secret key can write either. In Vercel's Production environment variables save `SUPABASE_URL` and `SUPABASE_SECRET_KEY`; never use `NEXT_PUBLIC_` for the secret or put it in a file, commit, chat, or client bundle. The prototype author has already completed this setup.
 
-All property links, QR codes, copied/viewed URLs and public sharing metadata use one setting: `NEXT_PUBLIC_SITE_URL`. Its safe default is the verified production alias `https://listing-kit-pink.vercel.app`. Vercel's automatically preferred custom hostname and request headers are deliberately ignored. To switch to an owned, connected custom domain later, change `NEXT_PUBLIC_SITE_URL` in Vercel's Production environment variables and redeploy; no code change is needed. Use a full HTTPS origin without a path, port, query or credentials. Development/loopback addresses are rejected.
+All generated property, Agent Portfolio and Open House links, QR destinations, copied/viewed URLs and public canonical metadata use `app/lib/site-url.ts`. Its default is `https://listory.ca`; the existing non-secret `NEXT_PUBLIC_SITE_URL` is an optional override. No new Vercel variable is required. If explicitly configured, set it to `https://listory.ca` for Production and Preview and redeploy the corresponding environment. Vercel's automatically preferred hostname and request headers are deliberately ignored. Use a full HTTPS origin without a path, port, query or credentials. Development/loopback addresses are rejected. Existing Vercel aliases must stay attached so printed QRs and older links continue to resolve. See [the domain handoff](docs/public-domain.md) for the URL audit and Supabase Auth callback configuration check.
 
 Existing database records store slugs, not canonical site URLs, so existing published pages automatically use the corrected origin. Opening the original listing's Marketing Package refreshes the saved browser URL from the server and writes it back to local storage, updating Copy Link, View Property Page and QR exports. Existing downloaded or printed brochures must be regenerated; a PDF or printed QR already distributed cannot be rewritten remotely.
 
