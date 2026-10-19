@@ -1,3 +1,4 @@
+import {publicPageMetadata} from './lib/public-metadata';
 import type {Metadata} from 'next';
 import PublicShell from './components/public-shell';
 import PublicScrollRow from './components/public-scroll-row';
@@ -7,7 +8,7 @@ import {getFreshListings} from './lib/server/fresh-listings';
 import {getDirectoryAgents} from './lib/server/directory';
 import {getOpenHousesToday} from './lib/server/public-discovery';
 export const dynamic='force-dynamic';
-export const metadata:Metadata={title:'Listory — Every listing has a story.',description:'Discover thoughtfully presented homes and the agents behind them on Listory.'};
+export const metadata:Metadata={...publicPageMetadata('/'),title:'Listory — Every listing has a story.',description:'Discover thoughtfully presented homes and the agents behind them on Listory.'};
 export default async function Home(){
  const [fresh,agents,events]=await Promise.allSettled([getFreshListings(),getDirectoryAgents(),getOpenHousesToday()]);
  return <PublicShell><LegacyWorkspaceEntry/><main className="public-home">

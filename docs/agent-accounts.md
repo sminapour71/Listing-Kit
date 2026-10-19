@@ -20,8 +20,8 @@ This transaction is additive and repeatable. It does not delete listings or phot
 
 In Supabase, click **Authentication → URL Configuration**:
 
-1. Set **Site URL** to `https://listing-kit-pink.vercel.app`.
-2. Under **Redirect URLs**, click **Add URL** and enter `https://listing-kit-pink.vercel.app/**`. Save.
+1. Set **Site URL** to `https://listory.ca`.
+2. Under **Redirect URLs**, add `https://listory.ca/auth/callback**`. Keep existing Vercel/custom-domain entries so older email links continue to work. Save.
 3. For a Vercel branch preview, also add that preview's exact origin followed by `/**`. Do not allow all Vercel websites.
 4. Under **Authentication → Sign In / Providers → Email**, keep email/password signup enabled and **Confirm email** enabled.
 
@@ -29,9 +29,9 @@ The app uses Supabase's normal confirmation/reset emails. Their default template
 
 Supabase's default email sender has recipient restrictions and delivery/rate limits. For agents beyond your own test addresses, configure a genuine SMTP sender in Supabase's email settings. Delivery into a real mailbox must be tested after these settings are saved; automated tests do not send mail to arbitrary recipients.
 
-No additional Vercel environment variables or public Supabase keys are needed. Keep the existing **SUPABASE_URL** and **SUPABASE_SECRET_KEY** as server-only settings. **NEXT_PUBLIC_SITE_URL** should remain `https://listing-kit-pink.vercel.app` for production. Never prefix the privileged key with `NEXT_PUBLIC_` or paste it into chat/GitHub.
+No additional Vercel environment variables or public Supabase keys are needed. Keep the existing **SUPABASE_URL** and **SUPABASE_SECRET_KEY** as server-only settings. The central default is `https://listory.ca`. **NEXT_PUBLIC_SITE_URL** is optional; if configured for Production, set it to `https://listory.ca`. Never prefix the privileged key with `NEXT_PUBLIC_` or paste it into chat/GitHub.
 
-For an isolated Vercel preview, set **NEXT_PUBLIC_SITE_URL** to that preview's origin for the Preview environment and redeploy the branch. Production remains unchanged. Vercel environment changes need a redeployment.
+Preview uses `https://listory.ca` too by default. Only for intentionally isolated sharing, set **NEXT_PUBLIC_SITE_URL** to that preview's origin for a branch-specific Preview override and redeploy the branch. Production remains unchanged. Vercel environment changes need a redeployment.
 
 ## Connect your earlier branding and listings
 
@@ -42,7 +42,7 @@ After the account version is deployed to your existing production domain:
 3. Open the confirmation email in that browser, then sign in.
 4. Open **Brand Profile**. If your old branding is detected, click **Import Browser Brand Profile**. Review the form, then click **Save Brand Profile**. The original browser copy remains intact.
 5. Open **Listings**. For each entry under **Connect your earlier listings**, check **I own this listing…**, then click **Connect Listing to My Account**.
-6. The listing appears in your account with **Edit Listing**. Its public URL, property data, photos, published status and QR destination are unchanged.
+6. The listing appears in your account with **Edit Listing**. Its original URL continues to resolve; property data, photos, published status and existing QR destinations are preserved. Newly copied links use the configured canonical domain.
 
 Each connection requires both a signed-in account and the correct original browser proof. The database atomically associates that specific unowned row with your user ID and clears its old secret hash. The old local entry is removed only after successful connection. Another account cannot claim the same listing or use that old key to edit it.
 

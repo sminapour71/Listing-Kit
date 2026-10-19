@@ -1,10 +1,11 @@
+import {publicPageMetadata} from '../lib/public-metadata';
 import type {Metadata} from 'next';
 import PublicShell from '../components/public-shell';
 import PropertyPhoto from '../components/property-photo';
 import {getFreshListings} from '../lib/server/fresh-listings';
 import {money,number} from '../lib/listing';
 export const dynamic='force-dynamic';
-export const metadata:Metadata={title:'Fresh Listings | Listory',description:'Recently presented homes on Listory.'};
+export const metadata:Metadata={...publicPageMetadata('/fresh'),title:'Fresh Listings | Listory',description:'Recently presented homes on Listory.'};
 type Query=Record<string,string|string[]|undefined>;
 const text=(q:Query,k:string)=>typeof q[k]==='string'?(q[k] as string).slice(0,150):'';
 function numeric(value:string){return /^\d+(\.\d+)?$/.test(value.trim())?Number(value):null;}

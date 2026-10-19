@@ -2,13 +2,13 @@
 
 ## Setup
 
-Run `supabase/migrations/202610170003_agent_portfolios_safe_delete.sql` in Supabase SQL Editor after the account and Open House migrations. It is transactional, repeatable and does not publish profiles or delete existing records. No additional packages, services, secrets or Vercel settings are needed. Existing `SUPABASE_URL`, `SUPABASE_SECRET_KEY` and optional `NEXT_PUBLIC_SITE_URL` are reused. The production fallback is https://listing-kit-pink.vercel.app.
+Run `supabase/migrations/202610170003_agent_portfolios_safe_delete.sql` in Supabase SQL Editor after the account and Open House migrations. It is transactional, repeatable and does not publish profiles or delete existing records. No additional packages, services, secrets or Vercel settings are needed. Existing `SUPABASE_URL`, `SUPABASE_SECRET_KEY` and optional `NEXT_PUBLIC_SITE_URL` are reused. The production fallback is https://listory.ca.
 
 ## Using your portfolio
 
 1. Sign in and open **Brand Profile**. Save your contact details, images and colours using **Save Brand Profile**.
 2. Scroll to **Your Agent Portfolio**. Enter a biography, up to five distinct free-text subareas and a public address. The address starts from your saved name and can be edited; it is checked before saving and protected by database uniqueness.
-3. Select **Show my portfolio publicly** and click **Save Portfolio**. Copy/open the exact link displayed there. With the address `shahin-mina-pour`, the URL is https://listing-kit-pink.vercel.app/agent/shahin-mina-pour. This address is an example until saved by its owner.
+3. Select **Show my portfolio publicly** and click **Save Portfolio**. Copy/open the exact link displayed there. With the address `shahin-mina-pour`, the URL is https://listory.ca/agent/shahin-mina-pour. This address is an example until saved by its owner.
 4. Choose up to six published homes under **Featured listings**. Checkbox changes save immediately. Published featured homes appear above Current Listings; no empty featured heading appears. Current Listings includes every published listing owned by this agent (including featured homes), never drafts, samples owned by someone else or unassigned legacy listings.
 5. Each property page links to its owner's public portfolio, when enabled. A renamed portfolio keeps its old address as a redirect, reserved to that owner. Unchecking public visibility and saving hides the page and profile asset endpoints.
 

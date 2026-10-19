@@ -1,13 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { siteOrigin, propertyUrl } from '../app/lib/site-url.ts';
-test('uses the verified Vercel alias even when Vercel prefers an unrelated custom domain', () => {
+test('uses listory.ca for new public URLs regardless of Vercel automatic domains', () => {
   const oldSite = process.env.NEXT_PUBLIC_SITE_URL;
   const oldAuto = process.env.VERCEL_PROJECT_PRODUCTION_URL;
   try {
     delete process.env.NEXT_PUBLIC_SITE_URL;
     process.env.VERCEL_PROJECT_PRODUCTION_URL = 'unowned.example';
-    assert.equal(propertyUrl('2-58-e-40th-ave'), 'https://listing-kit-pink.vercel.app/property/2-58-e-40th-ave');
+    assert.equal(siteOrigin(), 'https://listory.ca');
+    assert.equal(propertyUrl('2-58-e-40th-ave'), 'https://listory.ca/property/2-58-e-40th-ave');
     process.env.NEXT_PUBLIC_SITE_URL = 'https://owned.example/';
     assert.equal(propertyUrl('2-58-e-40th-ave'), 'https://owned.example/property/2-58-e-40th-ave');
   } finally {

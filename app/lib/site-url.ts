@@ -1,6 +1,6 @@
-// The verified production alias is the safe default. A future owned custom
-// domain can be selected with NEXT_PUBLIC_SITE_URL and a redeployment.
-const DEFAULT_SITE_URL = 'https://listing-kit-pink.vercel.app';
+// One public origin for generated links, QR destinations and SEO metadata.
+// An explicit non-secret override supports isolated deployments when needed.
+const DEFAULT_SITE_URL = 'https://listory.ca';
 export function siteOrigin(value = process.env.NEXT_PUBLIC_SITE_URL || DEFAULT_SITE_URL): string {
   let url: URL;
   try { url = new URL(value.trim()); } catch { throw new Error('NEXT_PUBLIC_SITE_URL must be a public HTTPS website address.'); }
