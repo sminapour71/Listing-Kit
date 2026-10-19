@@ -6,7 +6,7 @@ import { createCanvas } from '@napi-rs/canvas';
 test('only the cover fills edge-to-edge and matches its saved focal crop in both PDFs', async ({ page }, info) => {
   test.setTimeout(150_000);
   for (const [name,width,height] of [['portrait',750,1500],['panorama',3000,750],['square',1000,1000]] as const) {
-    await page.goto('/#create-listing'); await page.reload();
+    await page.goto('/workspace#create-listing'); await page.reload();
     await page.getByLabel('Property address', {exact:false}).fill(`Cover Verification ${name}, Vancouver, BC`);
     let cells='';for(let y=0;y<10;y++)for(let x=0;x<10;x++)cells+=`<rect x="${x*width/10}" y="${y*height/10}" width="${width/10}" height="${height/10}" fill="rgb(${44+x*18},${50+y*17},120)"/>`;
     const buffer=await sharp(Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">${cells}</svg>`)).png().toBuffer();

@@ -4,5 +4,7 @@ export function authCookieOptions(host: string) {
   return { name: 'listory-auth', path: '/', httpOnly: true, sameSite: 'lax' as const, secure: !local, maxAge: 60 * 60 * 24 * 30 };
 }
 export function safeReturnPath(value: unknown) {
-  return typeof value === 'string' && /^\/(?:#(?:listings|create-listing|brand-profile|marketing-package))?$/.test(value) ? value : '/';
+  if(typeof value !== 'string')return '/workspace';
+  const match=/^\/(?:workspace)?(#(?:listings|create-listing|brand-profile|marketing-package|listory-agents))?$/.exec(value);
+  return match?'/workspace'+(match[1]||''):'/workspace';
 }

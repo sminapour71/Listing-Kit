@@ -2,12 +2,12 @@ import {test,expect} from '@playwright/test';
 import {provisionAgent} from './helpers/agent';
 const origin='http://127.0.0.1:3100';
 test('private routes reject guests and legacy management headers; public listings remain readable',async({page,request})=>{
- await page.goto('/#brand-profile');await expect(page).toHaveURL(/\/sign-in/);
+ await page.goto('/workspace#brand-profile');await expect(page).toHaveURL(/\/sign-in/);
  for(const path of ['/api/properties','/api/agent-profile','/api/properties/an-unknown-property'])expect((await request.get(path,{headers:{'x-listory-management':'a'.repeat(64)}})).status()).toBe(401);
  expect((await request.post('/api/properties',{headers:{Origin:origin},data:{address:'not created'}})).status()).toBe(401);
  expect((await request.post('/api/auth/sign-in',{headers:{Origin:'https://other.example'},data:{email:'a@example.com',password:'no'}})).status()).toBe(403);
  const rows=await fetch(process.env.SUPABASE_URL+'/rest/v1/listory_properties?status=eq.published&select=slug&limit=1',{headers:{apikey:process.env.SUPABASE_SECRET_KEY!}}).then(r=>r.json());
- expect(rows.length).toBe(1);await page.goto('/property/'+rows[0].slug);expect(page.url()).toContain('/property/');await expect(page.locator('body')).not.toContainText('Sign In');expect(await page.title()).not.toBe('404: This page could not be found.');
+ expect(rows.length).toBe(1);await page.goto('/property/'+rows[0].slug);expect(page.url()).toContain('/property/');await expect(page.locator('input[name=password]')).toHaveCount(0);expect(await page.title()).not.toBe('404: This page could not be found.');
 });
 test('real Supabase password session survives refresh, stays HttpOnly and signs out',async({page})=>{
  const agent=await provisionAgent();
@@ -17,8 +17,8 @@ test('real Supabase password session survives refresh, stays HttpOnly and signs 
   const cookies=(await page.context().cookies()).filter(c=>c.name.startsWith('listory-auth'));expect(cookies.length).toBeGreaterThan(0);for(const cookie of cookies){expect(cookie.httpOnly).toBe(true);expect(cookie.sameSite).toBe('Lax');}
   expect(await page.evaluate(()=>document.cookie)).not.toContain('listory-auth');expect(await page.evaluate(()=>Object.keys(localStorage).some(k=>k.includes('auth-token')))).toBe(false);
   await page.screenshot({path:'test-results/accounts-desktop.png',fullPage:true});
-  await page.setViewportSize({width:390,height:844});await page.goto('/#brand-profile');await expect(page.getByLabel('First name',{exact:true})).toBeEnabled();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'test-results/accounts-mobile.png',fullPage:true});
-  await page.getByRole('button',{name:'Toggle navigation'}).click();await page.getByRole('button',{name:'Sign Out',exact:true}).click();await expect(page).toHaveURL(/sign-in/);await page.goto('/');await expect(page).toHaveURL(/sign-in/);
+  await page.setViewportSize({width:390,height:844});await page.goto('/workspace#brand-profile');await expect(page.getByLabel('First name',{exact:true})).toBeEnabled();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await page.screenshot({path:'test-results/accounts-mobile.png',fullPage:true});
+  await page.getByRole('button',{name:'Toggle navigation'}).click();await page.getByRole('button',{name:'Sign Out',exact:true}).click();await expect(page).toHaveURL(/sign-in/);await page.goto('/workspace');await expect(page).toHaveURL(/sign-in/);
  }finally{await agent.cleanup();}
 });
 test('recovery changes the real password and rejects reused email proofs',async({page})=>{

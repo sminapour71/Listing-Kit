@@ -1,0 +1,1 @@
+export const publicNavigation=[['Buy','/buy'],['Agents','/agents'],['Fresh Listings','/fresh'],['Open Houses Today','/open-houses'],['Guides','/guides'],['Neighbourhoods','/neighbourhoods']] as const;

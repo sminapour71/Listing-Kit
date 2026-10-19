@@ -17,7 +17,7 @@ test('portfolio privacy, branding, public navigation, feature limits and safe ca
   expect((await page.request.post('/api/auth/sign-in',{headers:{origin},data:{email:owner.email,password:owner.password}})).status()).toBe(200);
   expect((await second.request.post('/api/auth/sign-in',{headers:{origin},data:{email:other.email,password:other.password}})).status()).toBe(200);
   expect((await page.request.put('/api/agent-profile',{headers:{origin},data:{brand:profile}})).status()).toBe(200);
-  await page.goto('/#brand-profile');const settings=page.getByRole('region',{name:'Your Agent Portfolio'});await expect(settings.getByLabel('Public portfolio address')).toHaveValue('avery-chen');
+  await page.goto('/workspace#brand-profile');const settings=page.getByRole('region',{name:'Your Agent Portfolio'});await expect(settings.getByLabel('Public portfolio address')).toHaveValue('avery-chen');
   await settings.getByLabel('Public portfolio address').fill(slug);await settings.getByLabel('Public biography').fill('A thoughtful approach to real estate.\n\nLocal knowledge, personal service.');
   for(const [i,area]of ['Kitsilano','Yaletown','North Vancouver','Downtown Vancouver','Brentwood'].entries())await settings.getByLabel(`Subarea ${i+1}`,{exact:true}).fill(area);
   await settings.getByRole('button',{name:'Save Portfolio',exact:true}).click();await expect(settings.getByText('Portfolio saved privately.',{exact:true})).toBeVisible();expect((await guest.request.get('/agent/'+slug)).status()).toBe(404);
@@ -72,7 +72,7 @@ test('portfolio privacy, branding, public navigation, feature limits and safe ca
   for(let i=2;i<6;i++)expect((await page.request.patch(`/api/properties/${slugs[i]}/featured`,{headers:{origin},data:{featured:false}})).status()).toBe(200);
   await publicPage.reload();await expect(publicPage.getByRole('heading',{name:'Featured Listings',exact:true})).toHaveCount(0);
   const latest=(await (await page.request.get('/api/agent-portfolio')).json()).portfolio;expect((await page.request.put('/api/agent-portfolio',{headers:{origin},data:{...latest,portfolio_bio:'A'.repeat(4000),portfolio_subareas:['Neighbourhood'.repeat(6)]}})).status()).toBe(200);await publicPage.setViewportSize({width:320,height:900});await publicPage.reload();expect(await publicPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-  await page.goto('/#brand-profile');await expect(settings.getByLabel('Show my portfolio publicly')).toBeChecked();await settings.getByLabel('Show my portfolio publicly').uncheck();await settings.getByRole('button',{name:'Save Portfolio',exact:true}).click();await expect(settings.getByText('Portfolio saved privately.',{exact:true})).toBeVisible();expect((await guest.request.get('/agent/'+renamed)).status()).toBe(404);expect((await guest.request.get(`/agent/${renamed}/assets/headshot`)).status()).toBe(404);
+  await page.goto('/workspace#brand-profile');await expect(settings.getByLabel('Show my portfolio publicly')).toBeChecked();await settings.getByLabel('Show my portfolio publicly').uncheck();await settings.getByRole('button',{name:'Save Portfolio',exact:true}).click();await expect(settings.getByText('Portfolio saved privately.',{exact:true})).toBeVisible();expect((await guest.request.get('/agent/'+renamed)).status()).toBe(404);expect((await guest.request.get(`/agent/${renamed}/assets/headshot`)).status()).toBe(404);
  }finally{
   await guest.close();await second.close();
   // Only test-owned known paths, including the intentionally deleted row.

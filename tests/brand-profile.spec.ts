@@ -2,7 +2,7 @@ import { type Page } from '@playwright/test';
 import {test,expect} from './helpers/visual-fixture';
 const key = 'listingkit.brand-profile.v1';
 async function openBrand(page: Page) {
-  await page.goto('/#brand-profile');
+  await page.goto('/workspace#brand-profile');
   await expect(page.getByRole('heading', { name: 'Brand Profile', exact: true })).toBeVisible();
   await expect(page.getByLabel('First name', { exact: true })).toBeEnabled();
 }
@@ -104,9 +104,9 @@ test('fits desktop, tablet, and narrow phone displays, including long contact de
 });
 
 test('existing listing filters, search, and create-listing screen still work', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('/workspace');
   await expect(page.locator('.listing-card')).toHaveCount(3);
-  await page.getByRole('button', { name: 'Active2', exact: true }).click();
+  await page.getByRole('button', { name: 'Current2', exact: true }).click();
   await expect(page.locator('.listing-card')).toHaveCount(2);
   await page.getByRole('button', { name: 'All listings3', exact: true }).click();
   await page.getByRole('textbox', { name: 'Search listings' }).fill('Howe');
