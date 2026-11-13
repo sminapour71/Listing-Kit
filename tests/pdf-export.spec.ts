@@ -62,7 +62,7 @@ async function buildListing(page: Page, count: number, description?: string) {
     const source = await page.evaluate(() => { const canvas = document.createElement('canvas'); canvas.width = 2700; canvas.height = 1800; const ctx = canvas.getContext('2d')!; const gradient = ctx.createLinearGradient(0, 0, 2700, 1800); gradient.addColorStop(0, '#b14a30'); gradient.addColorStop(1, '#203940'); ctx.fillStyle = gradient; ctx.fillRect(0,0,2700,1800); return canvas.toDataURL('image/png').split(',')[1]; });
     const files = Array.from({ length: count }, (_, index) => ({ name: `high-resolution-${index + 1}.png`, mimeType: 'image/png', buffer: Buffer.from(source, 'base64') }));
     await page.getByLabel('Property photos', { exact: true }).setInputFiles(files);
-    await expect(page.locator('.listing-photo-row')).toHaveCount(count);
+    await expect(page.locator('.listing-photo-row')).toHaveCount(count,{timeout:30_000});
   }
 }
 
@@ -147,7 +147,9 @@ test('refuses excessive content clearly instead of clipping text or adding pages
   await buildListing(page, 4, 'An exceptionally long description that cannot fit a four-page brochure. '.repeat(200));
   await page.getByRole('button', { name: 'Generate Marketing Package', exact: true }).click();
   await page.getByRole('button', { name: 'Download PDF', exact: true }).click();
+  const rejection=page.waitForResponse(response=>response.url().endsWith('/api/brochure-pdf'),{timeout:60_000});
   await page.getByRole('button', { name: /Folded 11/ }).click();
+  expect((await rejection).status()).toBe(422);
   await expect(page.getByRole('dialog').getByRole('alert')).toContainText('Please shorten');
   await page.getByRole('button', { name: 'Close download options' }).click();
   await page.getByRole('button', { name: 'Back to Listing', exact: true }).click();

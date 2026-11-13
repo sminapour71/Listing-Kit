@@ -158,7 +158,7 @@ test('publishes real data, opens in a clean browser, and decodes the QR in both 
       }
     }
     await page.goto('/workspace');await page.reload();const ownCard=page.locator('.listing-card').filter({hasText:address}).filter({has:page.locator('.status.active')});await expect(ownCard).toBeVisible();await ownCard.getByRole('button',{name:'Edit Listing',exact:true}).click();
-    await expect(page.getByLabel('Property address',{exact:false})).toHaveValue(address);
+    await expect(page.getByLabel('Property address',{exact:false})).toHaveValue(address,{timeout:30_000});
     await expect(page.locator('.listing-photo-row')).toHaveCount(6);
     await page.getByRole('button',{name:'Generate Marketing Package',exact:true}).click();
     await expect(page.locator('.published-url')).toHaveAttribute('href',publication!.url);

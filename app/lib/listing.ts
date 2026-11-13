@@ -1,12 +1,14 @@
+import type {BrochureSettings} from './brochure-studio';
 import type { PhotoDimensions } from './photo-fitting';
 import type { BrandProfile } from './brand-profile';
-export type ListingImage = { id: string; url: string; name: string; pdfPages?: number } & PhotoDimensions;
+export type ListingImage = { id: string; url: string; name: string; pdfPages?: number; caption?: string } & PhotoDimensions;
 export type Listing = {
   address: string; price: string; bedrooms: string; bathrooms: string; squareFootage: string;
   taxes: string; strata: string; parking: string; storage: string; description: string; features: string;
+  brochure?: BrochureSettings;
   photos: ListingImage[]; floorPlan: ListingImage | null;
 };
-export type ListingTextKey = Exclude<keyof Listing, 'photos' | 'floorPlan'>;
+export type ListingTextKey = Exclude<keyof Listing, 'photos' | 'floorPlan' | 'brochure'>;
 export const emptyListing: Listing = {
   address: '', price: '', bedrooms: '', bathrooms: '', squareFootage: '', taxes: '', strata: '',
   parking: '', storage: '', description: '', features: '', photos: [], floorPlan: null,

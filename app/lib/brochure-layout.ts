@@ -112,7 +112,8 @@ export function applyBrochureSheetFits(results: { scale: number }[], root: Paren
     const canvas = sheet.firstElementChild as HTMLElement, scale = results[i].scale;
     Object.assign(canvas.style, { position: 'absolute', left: `${(816 - 816 * scale) / (2 * scale)}px`, top: '0', zoom: String(scale) });
     const paper = canvas.querySelector<HTMLElement>('.brochure-paper')!;
-    if (paper.classList.contains('brochure-page-1')) sheet.style.background = getComputedStyle(paper.querySelector('.brochure-cover-content')!).backgroundColor;
+    const cover = paper.querySelector('.brochure-cover-content');
+    if (paper.classList.contains('brochure-page-1')) sheet.style.background = getComputedStyle(cover || paper).backgroundColor;
     sheet.dataset.layoutReady = 'true';
   });
 }

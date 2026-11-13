@@ -15,6 +15,7 @@
     "@fontsource/arimo": "^5.3.0",
     "@fontsource/bodoni-moda": "^5.3.0",
     "@fontsource/gelasio": "^5.3.0",
+    "@fontsource/montserrat": "^5.2.8",
     "@sparticuz/chromium": "^153.0.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",

@@ -1,3 +1,7 @@
+import '@fontsource/montserrat/latin-300.css';
+import '@fontsource/montserrat/latin-400.css';
+import '@fontsource/montserrat/latin-500.css';
+import '@fontsource/montserrat/latin-600.css';
 import type { Metadata } from 'next';
 import {siteOrigin} from './lib/site-url';
 import '@fontsource/bodoni-moda/latin-500.css';
