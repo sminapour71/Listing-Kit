@@ -174,3 +174,21 @@ test('can cancel preparation and reopen the chooser without changing pages', asy
   await page.getByRole('button', { name: 'Download PDF', exact: true }).click();
   await expect(page.getByRole('dialog').getByRole('button', { name: /Folded 11/ })).toBeEnabled();
 });
+
+test('all three export format cards align icons, copy and arrows consistently',async({page},info)=>{
+ await openPackage(page);await page.getByRole('button',{name:'Download PDF',exact:true}).click();
+ const dialog=page.getByRole('dialog'),cards=dialog.locator('.pdf-format-card');await expect(cards).toHaveCount(3);
+ await expect(dialog.getByRole('button',{name:/Download selected format/})).toBeVisible();
+ const double=cards.first();await expect(double.locator('strong')).toHaveText('Double-Sided Letter');
+ await expect(double.locator('span>span')).toHaveText('One sheet, printed front and back.');
+ await expect(double.locator('small')).toHaveText('2 portrait pages · 8.5 × 11 · Flip on long edge');
+ const geometry=[];
+ for(const card of await cards.all()){
+  const icon=card.locator('.pdf-option-icon'),arrow=card.locator(':scope > svg');await expect(icon).toBeVisible();await expect(arrow).toBeVisible();
+  await expect(icon).toHaveCSS('background-color','rgb(238, 242, 231)');
+  geometry.push(await card.evaluate(el=>{const r=el.getBoundingClientRect(),icon=el.querySelector('.pdf-option-icon')!.getBoundingClientRect(),copy=el.children[1].getBoundingClientRect(),arrow=el.querySelector(':scope > svg')!.getBoundingClientRect(),css=getComputedStyle(el);return {height:r.height,iconLeft:icon.left-r.left,iconWidth:icon.width,iconHeight:icon.height,copyLeft:copy.left-r.left,arrowRight:r.right-arrow.right,arrowCenter:arrow.top+arrow.height/2-r.top,padding:css.padding,radius:css.borderRadius};}));
+ }
+ for(const row of geometry){expect(Math.abs(row.height-geometry[0].height)).toBeLessThan(1);expect(row.iconWidth).toBe(row.iconHeight);expect(row.iconLeft).toBe(geometry[0].iconLeft);expect(row.copyLeft).toBe(geometry[0].copyLeft);expect(row.arrowRight).toBe(geometry[0].arrowRight);expect(Math.abs(row.arrowCenter-row.height/2)).toBeLessThan(1);expect(row.padding).toBe(geometry[0].padding);expect(row.radius).toBe(geometry[0].radius);}
+ expect(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+ await dialog.screenshot({path:info.outputPath('matching-format-cards.png')});
+});

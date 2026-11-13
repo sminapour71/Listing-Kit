@@ -146,3 +146,7 @@ main.public-property{padding:0;background:#fff;max-width:none;margin:0;color:#28
 
 @font-face{font-family:'Listory Editorial Serif';src:url('/brochure-fonts/bodoni-moda-400-normal.woff2') format('woff2');font-weight:400;font-style:normal;font-display:block}
 @font-face{font-family:'Listory Editorial Serif';src:url('/brochure-fonts/bodoni-moda-400-italic.woff2') format('woff2');font-weight:400;font-style:italic;font-display:block}
+
+/* Equal format cards retain the established export-card styling at every width. */
+.pdf-format-cards{display:grid;gap:13px;grid-auto-rows:1fr}
+.pdf-format-card>svg{display:block}

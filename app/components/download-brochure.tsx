@@ -1,10 +1,13 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Download, X, Files, BookOpen, ArrowRight, LoaderCircle, Check } from 'lucide-react';
+import { Download, X, Files, BookOpen, ArrowRight, LoaderCircle, Check, FileStack, type LucideIcon } from 'lucide-react';
 import type { Listing } from '../lib/listing';
 import type { BrandProfile } from '../lib/brand-profile';
 import {brochureSettings,type BrochureSettings} from '../lib/brochure-studio';
 import type { PdfFormat } from '../lib/pdf-contract';
+function FormatCard({format,title,description,detail,Icon,onDownload}:{format:PdfFormat;title:string;description:string;detail:string;Icon:LucideIcon;onDownload:(format:PdfFormat)=>void}) {
+  return <button type="button" className="pdf-format-option pdf-format-card" onClick={()=>onDownload(format)}><span className="pdf-option-icon" aria-hidden="true"><Icon size={23}/></span><span><strong>{title}</strong><span>{description}</span><small>{detail}</small></span><ArrowRight size={17} aria-hidden="true"/></button>;
+}
 export default function DownloadBrochure({ listing, brand, sample, qrCode, settings: chosen }: { listing: Listing; brand: BrandProfile; sample: boolean; qrCode?: string; settings?: BrochureSettings }) {
   const settings=brochureSettings(chosen||listing.brochure);
   const dialog = useRef<HTMLDialogElement>(null); const controller = useRef<AbortController | null>(null);
@@ -27,9 +30,11 @@ export default function DownloadBrochure({ listing, brand, sample, qrCode, setti
   <dialog ref={dialog} className="pdf-format-dialog" aria-labelledby="pdf-dialog-title" aria-describedby="pdf-dialog-description" onCancel={close} onClick={event => { if (event.target === dialog.current) { const r = dialog.current!.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) close(); } }}>
     <div className="pdf-dialog-heading"><div><div className="eyebrow">READY FOR YOUR NEXT SHOWING</div><h2 id="pdf-dialog-title">Make a lasting impression.</h2></div><button className="pdf-close" type="button" aria-label="Close download options" onClick={close}><X size={18} /></button></div>
     <p id="pdf-dialog-description">Your chosen design is preserved in every format. Export the selected format or choose another below.</p>
-    {busy ? <div className="pdf-preparing" role="status" aria-live="polite"><LoaderCircle className="spin" size={28} /><strong>Preparing brochure...</strong><span>Preserving your photographs, colours, and branding.</span><button type="button" onClick={close}>Cancel</button></div> : <div className="pdf-format-options"><button type="button" className="pdf-format-option" onClick={()=>void download(settings.format)}><span><strong>Download selected format</strong><span>{settings.format==='double-sided'?'Double-Sided Letter · 2 pages':settings.format==='folded'?'Large Folded Brochure · 2 spreads':'Letter Brochure · 4 pages'}</span></span><ArrowRight size={17}/></button><button type="button" className="pdf-format-option" onClick={()=>void download('double-sided')}><span><strong>Double-Sided Letter</strong><span>One sheet, front and back · 2 portrait pages · Flip on long edge</span></span><ArrowRight size={17}/></button>
-      <button type="button" className="pdf-format-option" onClick={() => void download('letter')}><span className="pdf-option-icon"><Files size={23} /></span><span><strong>Standard 8.5 × 11</strong><span>Four-page brochure designed for standard letter-size printing.</span><small>4 portrait pages · Ideal for email or two-sheet duplex printing</small></span><ArrowRight size={17} /></button>
-      <button type="button" className="pdf-format-option" onClick={() => void download('folded')}><span className="pdf-option-icon"><BookOpen size={23} /></span><span><strong>Folded 11 × 17</strong><span>Print front and back on one 11 × 17 sheet, then fold it in half.</span><small>2 landscape spreads · Print actual size · Flip on short edge</small></span><ArrowRight size={17} /></button>
+    {busy ? <div className="pdf-preparing" role="status" aria-live="polite"><LoaderCircle className="spin" size={28} /><strong>Preparing brochure...</strong><span>Preserving your photographs, colours, and branding.</span><button type="button" onClick={close}>Cancel</button></div> : <div className="pdf-format-options"><button type="button" className="pdf-format-option" onClick={()=>void download(settings.format)}><span><strong>Download selected format</strong><span>{settings.format==='double-sided'?'Double-Sided Letter · 2 pages':settings.format==='folded'?'Large Folded Brochure · 2 spreads':'Letter Brochure · 4 pages'}</span></span><ArrowRight size={17}/></button><div className="pdf-format-cards">
+      <FormatCard format="double-sided" title="Double-Sided Letter" description="One sheet, printed front and back." detail="2 portrait pages · 8.5 × 11 · Flip on long edge" Icon={FileStack} onDownload={format=>void download(format)}/>
+      <FormatCard format="letter" title="Standard 8.5 × 11" description="Four-page brochure designed for standard letter-size printing." detail="4 portrait pages · Ideal for email or two-sheet duplex printing" Icon={Files} onDownload={format=>void download(format)}/>
+      <FormatCard format="folded" title="Folded 11 × 17" description="Print front and back on one 11 × 17 sheet, then fold it in half." detail="2 landscape spreads · Print actual size · Flip on short edge" Icon={BookOpen} onDownload={format=>void download(format)}/>
+    </div>
     </div>}
     {error && <div className="pdf-download-error" role="alert">{error}</div>}
     <p className="pdf-privacy-note">Only the brochure artwork is exported. It is processed temporarily to create your PDF and is not saved on our server.</p>
