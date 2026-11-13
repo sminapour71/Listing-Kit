@@ -1,7 +1,8 @@
 'use client';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
-import BrochurePaper from '../components/brochure-paper';
+import StudioPaper from '../components/studio-paper';
+import {brochureSettings, type BrochureSettings} from './brochure-studio';
 import type { Listing } from './listing';
 import type { BrandProfile } from './brand-profile';
 import { PDF_ASSET_ORIGIN, PDF_REQUEST_LIMIT, brochureFilename, type PdfAsset, type PdfFormat, type PdfRequest } from './pdf-contract';
@@ -25,14 +26,15 @@ async function encodeImage(src: string, photo: boolean, quality: number, signal:
   return result;
 }
 
-export async function exportBrochure({ listing, brand, sample, qrCode, format, signal }: { listing: Listing; brand: BrandProfile; sample: boolean; qrCode?: string; format: PdfFormat; signal: AbortSignal }) {
+export async function exportBrochure({ listing, brand, sample, qrCode, format, signal, settings: chosen }: { listing: Listing; brand: BrandProfile; sample: boolean; qrCode?: string; format: PdfFormat; signal: AbortSignal; settings?: BrochureSettings }) {
   // A separate, hidden React root serializes artwork only. The visible preview
   // and selected page never change, and no application chrome is sent to print.
+  const settings = {...brochureSettings(chosen || listing.brochure),format};
   const host = document.createElement('div'); host.hidden = true; host.setAttribute('aria-hidden', 'true'); document.body.append(host);
   const root = createRoot(host);
   let payload: string;
   try {
-    flushSync(() => root.render(<>{[0, 1, 2, 3].map(page => <BrochurePaper key={page} page={page} listing={listing} brand={brand} sample={sample} qrCode={qrCode} />)}</>));
+    flushSync(() => root.render(<>{(format==='double-sided'?[0,1]:[0,1,2,3]).map(page => <StudioPaper settings={settings} key={page} page={page} listing={listing} brand={brand} sample={sample} qrCode={qrCode} />)}</>));
     const images = Array.from(host.querySelectorAll('img'));
     const sources = [...new Set(images.map(image => image.getAttribute('src')!))];
     const photos = new Set(listing.photos.map(photo => photo.url));
@@ -41,7 +43,7 @@ export async function exportBrochure({ listing, brand, sample, qrCode, format, s
     const pages = Array.from(host.querySelectorAll('article')).map(article => article.outerHTML.replace(/data-pdf-image="(image-\d+)"/g, (_match, id) => `src="${PDF_ASSET_ORIGIN}${id}"`));
     const assets: PdfAsset[] = [];
     for (const src of sources) assets.push({ id: ids.get(src)!, data: await encodeImage(src, photos.has(src), .94, signal) });
-    const request: PdfRequest = { pages, assets, format, address: listing.address };
+    const request: PdfRequest = { pages, assets, format, design: settings.design, address: listing.address };
     payload = JSON.stringify(request);
     if (new Blob([payload]).size > PDF_REQUEST_LIMIT) {
       // Keep at least 300 dpi across a Letter-width landscape photo and use
@@ -62,7 +64,7 @@ export async function exportBrochure({ listing, brand, sample, qrCode, format, s
   if (!pdf.size || !response.headers.get('content-type')?.includes('application/pdf')) throw new Error('The PDF could not be prepared. Please try again.');
   abortIfNeeded(signal);
   const url = URL.createObjectURL(pdf); const link = document.createElement('a');
-  link.href = url; link.download = brochureFilename(listing.address, format); document.body.append(link); link.click(); link.remove();
+  link.href = url; link.download = brochureFilename(listing.address, format, settings.design); document.body.append(link); link.click(); link.remove();
   // Allow browser download handling to consume the blob before releasing it.
   window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }

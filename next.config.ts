@@ -13,7 +13,8 @@ const config: NextConfig = {
       './node_modules/playwright-core/**/*',
       './node_modules/@fontsource/arimo/files/arimo-latin-{400,700}-normal.woff2',
       './node_modules/@fontsource/gelasio/files/gelasio-latin-{400,700}-{normal,italic}.woff2',
-      './node_modules/@fontsource/bodoni-moda/files/bodoni-moda-latin-500-normal.woff2',
+      './node_modules/@fontsource/bodoni-moda/files/bodoni-moda-latin-{400,500}-{normal,italic}.woff2',
+      './node_modules/@fontsource/montserrat/files/montserrat-latin-{300,400,500,600}-normal.woff2',
     ],
   },
 };

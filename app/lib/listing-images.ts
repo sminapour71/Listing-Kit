@@ -1,8 +1,8 @@
 import { describePhoto } from './photo-fitting';
 import type { ListingImage } from './listing';
-async function canvasAsset(canvas: HTMLCanvasElement, name: string, pdfPages?: number): Promise<ListingImage> {
+async function canvasAsset(canvas: HTMLCanvasElement, name: string, pdfPages?: number, floorPlanPrint?: import('./floor-plan-print').FloorPlanPrint): Promise<ListingImage> {
   const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('The image could not be prepared. Please try another file.')), 'image/png'));
-  return { id: crypto.randomUUID(), url: URL.createObjectURL(blob), name, pdfPages, ...describePhoto(canvas.width, canvas.height) };
+  return { id: crypto.randomUUID(), url: URL.createObjectURL(blob), name, pdfPages, ...(floorPlanPrint?{floorPlanPrint}:{}), ...describePhoto(canvas.width, canvas.height) };
 }
 export async function prepareListingImage(file: File, allowPdf = false): Promise<ListingImage> {
   if (file.size > 20 * 1024 * 1024) throw new Error(`${file.name}: please choose a file smaller than 20 MB.`);
@@ -18,7 +18,9 @@ export async function prepareListingImage(file: File, allowPdf = false): Promise
       const canvas = window.document.createElement('canvas'); canvas.width = Math.ceil(viewport.width); canvas.height = Math.ceil(viewport.height);
       const context = canvas.getContext('2d'); if (!context) throw new Error('Image preview is unavailable.');
       await page.render({ canvas, canvasContext: context, viewport }).promise;
-      return await canvasAsset(canvas, file.name, document.numPages);
+      const text=await page.getTextContent().catch(()=>({items:[]}));
+      const sizes=text.items.filter(item=>'str' in item && item.str.trim()).map(item=>'transform' in item?Math.hypot(item.transform[2],item.transform[3])*page.userUnit:0).filter(n=>Number.isFinite(n)&&n>0);
+      return await canvasAsset(canvas, file.name, document.numPages, sizes.length?{widthPt:size.width,heightPt:size.height,smallestTextPt:sizes.reduce((minimum,n)=>Math.min(minimum,n),Infinity)}:undefined);
     } catch { throw new Error(`${file.name}: this PDF could not be opened. Try an unlocked PDF, JPG, or PNG floor plan.`); }
     finally { await task.destroy(); }
   }

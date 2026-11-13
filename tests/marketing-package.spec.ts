@@ -49,7 +49,8 @@ test('generates all four branded pages from the complete listing and retains edi
   await goTo(page, 3, 'Floor plan & details');
   await expect(paper.getByAltText(/Floor plan for/)).toHaveAttribute('src', /^blob:/);
   for (const text of ['$8,475.60 / year', '$425 / month', '2 underground spaces', 'Locker 42']) await expect(paper).toContainText(text);
-  await expect(paper.getByAltText('Additional property detail photograph')).toBeVisible();
+  // Detailed plans take priority over the optional duplicate photograph.
+  await expect(paper.getByAltText('Additional property detail photograph')).toBeHidden();
   await goTo(page, 4, 'Realtor');
   for (const text of ['Alex Morgan', brand.title, brand.teamName, brand.brokerageName, brand.phone, brand.email, brand.website, brand.instagram, 'Book a Private Showing', 'Property QR code', 'Publish property page to activate QR code.']) await expect(paper).toContainText(text);
   await expect(paper.getByAltText('Alex Morgan headshot')).toBeVisible();
@@ -81,12 +82,13 @@ test('handles missing photos, floor plan, and branding honestly', async ({ page 
   await page.goto('/workspace#create-listing');
   await page.getByLabel('Property address', { exact: false }).fill('An empty listing');
   await generate(page);
-  await expect(page.locator('.package-summary')).toContainText('SAMPLE BRANDING');
-  await expect(page.getByRole('article')).toContainText('Add a property photo');
-  await goTo(page, 2, 'Property'); await expect(page.getByRole('article')).toContainText('Add additional photographs');
-  await goTo(page, 3, 'Floor plan & details'); await expect(page.getByRole('article')).toContainText('Add a floor plan');
-  await expect(page.getByRole('article')).toContainText('Not provided');
-  await goTo(page, 4, 'Realtor'); await expect(page.getByRole('article')).toContainText('Add your headshot');
+  await expect(page.locator('.package-summary')).toContainText('BRAND PROFILE NOT ADDED');
+  await expect(page.getByRole('article')).toContainText('An empty listing');
+  for(const [n,label]of [[2,'Property'],[3,'Floor plan & details'],[4,'Realtor']] as const){
+    await goTo(page,n,label);await expect(page.locator('.brochure-missing,.brochure-headshot-placeholder')).toHaveCount(0);
+    await expect(page.getByRole('article')).not.toContainText('Add a floor plan');
+    await expect(page.getByRole('article')).not.toContainText('Add your headshot');
+  }
 });
 
 test('offers a sample brochure with the current saved brand, including on a fresh deep link', async ({ page }) => {

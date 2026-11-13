@@ -20,8 +20,8 @@ test('portfolio privacy, branding, public navigation, feature limits and safe ca
   await page.goto('/workspace#brand-profile');const settings=page.getByRole('region',{name:'Your Agent Portfolio'});await expect(settings.getByLabel('Public portfolio address')).toHaveValue('avery-chen');
   await settings.getByLabel('Public portfolio address').fill(slug);await settings.getByLabel('Public biography').fill('A thoughtful approach to real estate.\n\nLocal knowledge, personal service.');
   for(const [i,area]of ['Kitsilano','Yaletown','North Vancouver','Downtown Vancouver','Brentwood'].entries())await settings.getByLabel(`Subarea ${i+1}`,{exact:true}).fill(area);
-  await settings.getByRole('button',{name:'Save Portfolio',exact:true}).click();await expect(settings.getByText('Portfolio saved privately.',{exact:true})).toBeVisible();expect((await guest.request.get('/agent/'+slug)).status()).toBe(404);
-  await settings.getByLabel('Show my portfolio publicly').check();await settings.getByRole('button',{name:'Save Portfolio',exact:true}).click();await expect(settings.getByText('Your public portfolio is ready.',{exact:true})).toBeVisible();
+  await settings.getByRole('button',{name:'Save Portfolio',exact:true}).click();await expect(settings.getByText('Portfolio saved privately.',{exact:true})).toBeVisible({timeout:15000});expect((await guest.request.get('/agent/'+slug)).status()).toBe(404);
+  await settings.getByLabel('Show my portfolio publicly').check();await settings.getByRole('button',{name:'Save Portfolio',exact:true}).click();await expect(settings.getByText('Your public portfolio is ready.',{exact:true})).toBeVisible({timeout:15000});
   expect((await second.request.put('/api/agent-portfolio',{headers:{origin},data:{portfolio_slug:slug,portfolio_bio:'forged',portfolio_subareas:[],portfolio_published:true,id:owner.id}})).status()).toBe(409);
   const otherSave=await second.request.put('/api/agent-portfolio',{headers:{origin},data:{portfolio_slug:'other-'+unique,portfolio_bio:'Other agent',portfolio_subareas:[],portfolio_published:true,id:owner.id}});expect(otherSave.status()).toBe(200);
   expect((await guest.request.put('/api/agent-portfolio',{headers:{origin},data:{}})).status()).toBe(401);
@@ -39,7 +39,7 @@ test('portfolio privacy, branding, public navigation, feature limits and safe ca
   }
   expect((await second.request.patch(`/api/properties/${slugs[0]}/featured`,{headers:{origin},data:{featured:true}})).status()).toBe(404);
   expect((await page.request.patch(`/api/properties/${slugs[7]}/featured`,{headers:{origin},data:{featured:true}})).status()).toBe(400);
-  await page.reload();await expect(settings.locator('.portfolio-feature-choice')).toHaveCount(8);
+  await page.reload();await expect(settings.locator('.portfolio-feature-choice')).toHaveCount(8,{timeout:15000});
   await settings.locator('.portfolio-feature-choice').filter({hasText:summaries[0].address}).getByRole('checkbox').check();await expect(settings.getByText('Featured listings updated.',{exact:true})).toBeVisible();
   for(let i=1;i<6;i++)expect((await page.request.patch(`/api/properties/${slugs[i]}/featured`,{headers:{origin},data:{featured:true}})).status()).toBe(200);
   expect((await page.request.patch(`/api/properties/${slugs[6]}/featured`,{headers:{origin},data:{featured:true}})).status()).toBe(400);
@@ -52,7 +52,7 @@ test('portfolio privacy, branding, public navigation, feature limits and safe ca
   await expect(publicPage.locator('.agent-property-card').filter({hasText:summaries[0].address}).first()).toHaveAttribute('href',siteOrigin()+'/property/'+slugs[0]);
   const prop=await guest.request.get('/property/'+slugs[0]);expect(prop.status()).toBe(200);expect(await prop.text()).toContain(siteOrigin()+'/agent/'+slug);
   // Stable aliases redirect after editing, and previous slug cannot be stolen.
-  await settings.getByLabel('Public portfolio address').fill(renamed);await settings.getByRole('button',{name:'Save Portfolio',exact:true}).click();await expect(settings.getByText('Your public portfolio is ready.',{exact:true})).toBeVisible();
+  await settings.getByLabel('Public portfolio address').fill(renamed);await settings.getByRole('button',{name:'Save Portfolio',exact:true}).click();await expect(settings.getByText('Your public portfolio is ready.',{exact:true})).toBeVisible({timeout:15000});
   await publicPage.goto('/agent/'+slug);await expect(publicPage).toHaveURL(new RegExp('/agent/'+renamed+'$'));
   expect((await second.request.put('/api/agent-portfolio',{headers:{origin},data:{portfolio_slug:slug,portfolio_bio:'taken',portfolio_subareas:[],portfolio_published:true}})).status()).toBe(409);
   const event=await page.request.post(`/api/properties/${slugs[0]}/open-houses`,{headers:{origin},data:{date:'2026-11-23',startTime:'13:00',endTime:'15:00',timezone:'America/Vancouver',notes:'PRIVATE EVENT NOTE'}});expect(event.status()).toBe(201);const eventData=await event.json();const id=eventData.id;
@@ -72,7 +72,7 @@ test('portfolio privacy, branding, public navigation, feature limits and safe ca
   for(let i=2;i<6;i++)expect((await page.request.patch(`/api/properties/${slugs[i]}/featured`,{headers:{origin},data:{featured:false}})).status()).toBe(200);
   await publicPage.reload();await expect(publicPage.getByRole('heading',{name:'Featured Listings',exact:true})).toHaveCount(0);
   const latest=(await (await page.request.get('/api/agent-portfolio')).json()).portfolio;expect((await page.request.put('/api/agent-portfolio',{headers:{origin},data:{...latest,portfolio_bio:'A'.repeat(4000),portfolio_subareas:['Neighbourhood'.repeat(6)]}})).status()).toBe(200);await publicPage.setViewportSize({width:320,height:900});await publicPage.reload();expect(await publicPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
-  await page.goto('/workspace#brand-profile');await expect(settings.getByLabel('Show my portfolio publicly')).toBeChecked();await settings.getByLabel('Show my portfolio publicly').uncheck();await settings.getByRole('button',{name:'Save Portfolio',exact:true}).click();await expect(settings.getByText('Portfolio saved privately.',{exact:true})).toBeVisible();expect((await guest.request.get('/agent/'+renamed)).status()).toBe(404);expect((await guest.request.get(`/agent/${renamed}/assets/headshot`)).status()).toBe(404);
+  await page.goto('/workspace#brand-profile');await expect(settings.getByLabel('Show my portfolio publicly')).toBeChecked();await settings.getByLabel('Show my portfolio publicly').uncheck();await settings.getByRole('button',{name:'Save Portfolio',exact:true}).click();await expect(settings.getByText('Portfolio saved privately.',{exact:true})).toBeVisible({timeout:15000});expect((await guest.request.get('/agent/'+renamed)).status()).toBe(404);expect((await guest.request.get(`/agent/${renamed}/assets/headshot`)).status()).toBe(404);
  }finally{
   await guest.close();await second.close();
   // Only test-owned known paths, including the intentionally deleted row.

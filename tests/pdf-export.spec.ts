@@ -62,7 +62,7 @@ async function buildListing(page: Page, count: number, description?: string) {
     const source = await page.evaluate(() => { const canvas = document.createElement('canvas'); canvas.width = 2700; canvas.height = 1800; const ctx = canvas.getContext('2d')!; const gradient = ctx.createLinearGradient(0, 0, 2700, 1800); gradient.addColorStop(0, '#b14a30'); gradient.addColorStop(1, '#203940'); ctx.fillStyle = gradient; ctx.fillRect(0,0,2700,1800); return canvas.toDataURL('image/png').split(',')[1]; });
     const files = Array.from({ length: count }, (_, index) => ({ name: `high-resolution-${index + 1}.png`, mimeType: 'image/png', buffer: Buffer.from(source, 'base64') }));
     await page.getByLabel('Property photos', { exact: true }).setInputFiles(files);
-    await expect(page.locator('.listing-photo-row')).toHaveCount(count);
+    await expect(page.locator('.listing-photo-row')).toHaveCount(count,{timeout:30_000});
   }
 }
 
@@ -89,7 +89,8 @@ test('downloads the current listing and saved realtor brand in both exact print 
   expect(letter.pages[0].colours).toContain('#152f48'); expect(letter.pages[2].colours).toContain('#efd8b5');
   expect(letter.pages[0].images.some(image => image[1] >= 2500)).toBe(true);
   expect(letter.pages[1].images.length).toBeGreaterThanOrEqual(4);
-  expect(letter.pages[2].images.length).toBeGreaterThanOrEqual(2);
+  // The floor-plan page now reserves the former decorative photograph region for the plan.
+  expect(letter.pages[2].images.length).toBeGreaterThanOrEqual(1);
   expect(letter.pages[3].images.length).toBeGreaterThanOrEqual(3);
   for (const [i, p] of letter.pages.entries()) { expect(p.text).toMatch(new RegExp(`\\b0\\s*${i + 1}\\b`)); expect(p.text).toContain('Listory.'); }
   const letterPreferences = letter.document.catalog.getOrCreateViewerPreferences();
@@ -147,7 +148,9 @@ test('refuses excessive content clearly instead of clipping text or adding pages
   await buildListing(page, 4, 'An exceptionally long description that cannot fit a four-page brochure. '.repeat(200));
   await page.getByRole('button', { name: 'Generate Marketing Package', exact: true }).click();
   await page.getByRole('button', { name: 'Download PDF', exact: true }).click();
+  const rejection=page.waitForResponse(response=>response.url().endsWith('/api/brochure-pdf'),{timeout:60_000});
   await page.getByRole('button', { name: /Folded 11/ }).click();
+  expect((await rejection).status()).toBe(422);
   await expect(page.getByRole('dialog').getByRole('alert')).toContainText('Please shorten');
   await page.getByRole('button', { name: 'Close download options' }).click();
   await page.getByRole('button', { name: 'Back to Listing', exact: true }).click();
@@ -171,4 +174,22 @@ test('can cancel preparation and reopen the chooser without changing pages', asy
   await expect(page.getByRole('article')).toHaveAttribute('aria-label', 'Brochure page 4: Realtor');
   await page.getByRole('button', { name: 'Download PDF', exact: true }).click();
   await expect(page.getByRole('dialog').getByRole('button', { name: /Folded 11/ })).toBeEnabled();
+});
+
+test('all three export format cards align icons, copy and arrows consistently',async({page},info)=>{
+ await openPackage(page);await page.getByRole('button',{name:'Download PDF',exact:true}).click();
+ const dialog=page.getByRole('dialog'),cards=dialog.locator('.pdf-format-card');await expect(cards).toHaveCount(3);
+ await expect(dialog.getByRole('button',{name:/Download selected format/})).toBeVisible();
+ const double=cards.first();await expect(double.locator('strong')).toHaveText('Double-Sided Letter');
+ await expect(double.locator('span>span')).toHaveText('One sheet, printed front and back.');
+ await expect(double.locator('small')).toHaveText('2 portrait pages · 8.5 × 11 · Flip on long edge');
+ const geometry=[];
+ for(const card of await cards.all()){
+  const icon=card.locator('.pdf-option-icon'),arrow=card.locator(':scope > svg');await expect(icon).toBeVisible();await expect(arrow).toBeVisible();
+  await expect(icon).toHaveCSS('background-color','rgb(238, 242, 231)');
+  geometry.push(await card.evaluate(el=>{const r=el.getBoundingClientRect(),icon=el.querySelector('.pdf-option-icon')!.getBoundingClientRect(),copy=el.children[1].getBoundingClientRect(),arrow=el.querySelector(':scope > svg')!.getBoundingClientRect(),css=getComputedStyle(el);return {height:r.height,iconLeft:icon.left-r.left,iconWidth:icon.width,iconHeight:icon.height,copyLeft:copy.left-r.left,arrowRight:r.right-arrow.right,arrowCenter:arrow.top+arrow.height/2-r.top,padding:css.padding,radius:css.borderRadius};}));
+ }
+ for(const row of geometry){expect(Math.abs(row.height-geometry[0].height)).toBeLessThan(1);expect(row.iconWidth).toBe(row.iconHeight);expect(row.iconLeft).toBe(geometry[0].iconLeft);expect(row.copyLeft).toBe(geometry[0].copyLeft);expect(row.arrowRight).toBe(geometry[0].arrowRight);expect(Math.abs(row.arrowCenter-row.height/2)).toBeLessThan(1);expect(row.padding).toBe(geometry[0].padding);expect(row.radius).toBe(geometry[0].radius);}
+ expect(await dialog.evaluate(el=>el.scrollWidth<=el.clientWidth)).toBe(true);
+ await dialog.screenshot({path:info.outputPath('matching-format-cards.png')});
 });

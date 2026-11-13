@@ -1,3 +1,4 @@
+import {layoutFloorPlans} from '../floor-plan-print';
 import { applyGalleryLayouts, measurePhotoGrids, galleryLayout, applyBrochureSheetFits, compactBrochureSheets, measureBrochureSheets } from '../brochure-layout';
 import { describePhoto, focalPosition, photoFit, photoPosition, type PhotoMode } from '../photo-fitting';
 import chromium from '@sparticuz/chromium';
@@ -40,19 +41,20 @@ async function loadStyles() {
   const fonts = [
     ['Listory Brochure Sans', 'arimo', '400', 'normal'], ['Listory Brochure Sans', 'arimo', '700', 'normal'],
     ['Listory Brochure Serif', 'gelasio', '400', 'normal'], ['Listory Brochure Serif', 'gelasio', '400', 'italic'],
-    ['Listory Brochure Serif', 'gelasio', '700', 'normal'], ['Bodoni Moda', 'bodoni-moda', '500', 'normal'],
+    ['Listory Brochure Serif', 'gelasio', '700', 'normal'], ['Bodoni Moda', 'bodoni-moda', '500', 'normal'], ['Listory Editorial Serif', 'bodoni-moda', '400', 'normal'], ['Listory Editorial Serif', 'bodoni-moda', '400', 'italic'],
+    ...['300','400','500','600'].map(weight=>['Montserrat','montserrat',weight,'normal']),
   ];
   const faces = await Promise.all(fonts.map(async ([family, file, weight, style]) => {
     const data = await readFile(path.join(process.cwd(), 'node_modules/@fontsource', file, 'files', `${file}-latin-${weight}-${style}.woff2`));
     return `@font-face{font-family:"${family}";font-style:${style};font-weight:${weight};src:url(data:font/woff2;base64,${data.toString('base64')}) format('woff2');font-display:block}`;
   }));
-  return faces.join('\n') + '\n' + reset + '\n' + global.replace(/@import\s+['"]tailwindcss['"];?/, '').replace(/@font-face\{font-family:'Listory Brochure (?:Sans|Serif)'[^}]+\}/g, '');
+  return faces.join('\n') + '\n' + reset + '\n' + global.replace(/@import\s+['"]tailwindcss['"];?/, '').replace(/@font-face\{font-family:'(?:Listory Brochure (?:Sans|Serif)|Listory Editorial Serif)'[^}]+\}/g, '');
 }
 
 function cleanPage(html: string, index: number) {
   if (typeof html !== 'string' || html.length > 180_000 || !html.includes(`brochure-page-${index + 1}`)) throw new PdfExportError('The brochure artwork could not be read. Please generate the marketing package again.', 400);
   return sanitizeHtml(html, {
-    allowedTags: ['article', 'div', 'span', 'h2', 'h3', 'p', 'footer', 'img', 'ul', 'li', 'section', 'dl', 'dt', 'dd', 'em', 'strong', 'small', 'br', 'i', 'svg', 'path', 'line', 'rect', 'circle', 'polyline', 'polygon'],
+    allowedTags: ['article', 'div', 'span', 'h2', 'h3', 'p', 'footer', 'img', 'ul', 'li', 'section', 'header', 'dl', 'dt', 'dd', 'em', 'strong', 'small', 'br', 'i', 'svg', 'path', 'line', 'rect', 'circle', 'polyline', 'polygon'],
     allowedAttributes: {
       '*': ['class'], article: ['class', 'style'], img: ['src', 'alt', 'data-photo-mode', 'data-photo-position', 'data-photo-focal-x', 'data-photo-focal-y'],
       svg: ['class', 'xmlns', 'viewBox', 'width', 'height', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin'],
@@ -82,7 +84,7 @@ async function fitPropertyPhotos(page: Page) {
 }
 
 export async function renderBrochurePdf(input: PdfRequest, signal: AbortSignal): Promise<Uint8Array> {
-  if (!input || !['letter', 'folded'].includes(input.format) || !Array.isArray(input.pages) || input.pages.length !== 4 || !Array.isArray(input.assets) || input.assets.length > 24 || typeof input.address !== 'string' || input.address.length > 500) throw new PdfExportError('Please choose a valid brochure format and try again.', 400);
+  if (!input || !['letter', 'folded', 'double-sided'].includes(input.format) || !Array.isArray(input.pages) || input.pages.length !== (input.format === 'double-sided' ? 2 : 4) || !Array.isArray(input.assets) || input.assets.length > 24 || typeof input.address !== 'string' || input.address.length > 500) throw new PdfExportError('Please choose a valid brochure format and try again.', 400);
   if (activeRenders >= 2) throw new PdfExportError('Other brochures are being prepared. Please try again in a moment.', 429);
   const pages = input.pages.map(cleanPage);
   const assets = new Map<string, { body: Buffer; contentType: string }>();
@@ -144,11 +146,12 @@ export async function renderBrochurePdf(input: PdfRequest, signal: AbortSignal):
         }).join('\n');
       }
       element.textContent = freeze(element.sheet!.cssRules);
-      await Promise.all([document.fonts.load('500 15px "Bodoni Moda"'), document.fonts.load('400 12px "Listory Brochure Serif"'), document.fonts.load('italic 400 12px "Listory Brochure Serif"'), document.fonts.load('400 12px "Listory Brochure Sans"'), document.fonts.load('700 12px "Listory Brochure Sans"')]);
+      await Promise.all([document.fonts.load('500 15px "Bodoni Moda"'), document.fonts.load('400 15px "Listory Editorial Serif"'), document.fonts.load('italic 400 15px "Listory Editorial Serif"'), ...[300,400,500,600].map(w=>document.fonts.load(`${w} 12px Montserrat`)), document.fonts.load('400 12px "Listory Brochure Serif"'), document.fonts.load('italic 400 12px "Listory Brochure Serif"'), document.fonts.load('400 12px "Listory Brochure Sans"'), document.fonts.load('700 12px "Listory Brochure Sans"')]);
       await document.fonts.ready;
       await Promise.all(Array.from(document.images).map(image => image.decode()));
       if (!document.fonts.check('500 15px "Bodoni Moda"') || !document.fonts.check('400 12px "Listory Brochure Serif"')) throw new Error('Print fonts did not load');
     });
+    await page.evaluate(layoutFloorPlans);
     await fitPropertyPhotos(page);
     let fit = await page.evaluate(measureBrochureSheets as () => ReturnType<typeof measureBrochureSheets>);
     if (fit.some(result => result.scale < .8)) {
@@ -163,7 +166,7 @@ export async function renderBrochurePdf(input: PdfRequest, signal: AbortSignal):
     signal.throwIfAborted();
     const letterBytes = await page.pdf({ width: '8.5in', height: '11in', printBackground: true, displayHeaderFooter: false, preferCSSPageSize: true, margin: { top: 0, bottom: 0, left: 0, right: 0 }, tagged: true });
     const letter = await PDFDocument.load(letterBytes);
-    if (letter.getPageCount() !== 4) throw new PdfExportError('The pages could not be fitted correctly. Please shorten the listing text and try again.');
+    if (letter.getPageCount() !== (input.format === 'double-sided' ? 2 : 4)) throw new PdfExportError('The pages could not be fitted correctly. Please shorten the listing text and try again.');
     const output = input.format === 'folded' ? await PDFDocument.create() : letter;
     if (input.format === 'folded') {
       const panels = await output.embedPages(letter.getPages());

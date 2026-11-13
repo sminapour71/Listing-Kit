@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     const bytes = await renderBrochurePdf(input, request.signal);
     return new Response(new Uint8Array(bytes), { headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${brochureFilename(input.address, input.format)}"`,
+      'Content-Disposition': `attachment; filename="${brochureFilename(input.address, input.format, input.design)}"`,
       'Cache-Control': 'private, no-store, max-age=0', 'X-Content-Type-Options': 'nosniff',
     } });
   } catch (error) {
