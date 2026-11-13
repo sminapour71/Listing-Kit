@@ -3,7 +3,7 @@
 ## Existing system audited before implementation
 
 - `brochure-paper.tsx` provides four Letter panels: cover, property story/photos,
-  floor plan/specifications, Realtor/contact/QR. Its complete-data artwork and page sequence are retained.
+  floor plan/specifications, Realtor/contact/QR. Its four-panel sequence is retained; targeted final caption/plan/branding polish is described below.
 - `brochure-preview.tsx` fits fixed 816 × 1056 CSS-pixel sheets, using the same
   fitting policy as the isolated Chromium PDF renderer.
 - `export-brochure.tsx` serializes artwork and same-origin/blob images only.
@@ -22,7 +22,7 @@
 
 | Design | Composition |
 |---|---|
-| Listory Original | Existing typography, colours and complete four-panel artwork; new two-page version uses its forest-green and serif language. |
+| Listory Original | Existing typography, colours, covers and four-panel structure, with the targeted plan/caption polish below; the two-page version uses its forest-green and serif language. |
 | Montserrat Minimalist | Geometric sans typography, warm white, fine rules, numbered labels, generous margins and asymmetric photo grids. |
 | Classic Editorial | Bodoni display and selective italics, original magazine title, near-full-width cover image, ivory paper and editorial spreads. |
 
@@ -42,8 +42,10 @@ position uses the existing editor and appears in the actual preview crop. Origin
 photo focal points are retained; the brochure-specific cover override is separate.
 Cover choices and captions follow their photographs when photos are reordered;
 removing the selected cover safely chooses the first remaining photograph.
-Optional photo captions (100 characters) appear below selected photos in the new
-compositions. Legacy Original four-panel artwork does not gain caption blocks.
+Optional photo captions (100 characters) appear below selected photos in all
+three designs, including Original four-panel artwork. Empty/whitespace captions
+produce no element or reserved spacing. Only supplied custom text is displayed;
+previous generic demonstration-fixture captions have been removed.
 No captions or factual claims are generated. Generic editorial labels describe
 sections, not architectural features.
 
@@ -118,7 +120,7 @@ Font license notices are distributed at `/font-licenses/Montserrat-OFL.txt` and
 `/font-licenses/Bodoni-Moda-OFL.txt`; PDF document content is not placed under the
 font license. The fonts are embedded, not substituted with system fonts.
 
-## Final results
+## Previous studio validation (before final print polish)
 
 - Production build and standalone TypeScript: passed.
 - All 14 script test files: passed, including lifecycle/RLS, PDF deployment trace,
@@ -199,3 +201,76 @@ tests/marketing-package.spec.ts
 tests/pdf-export.spec.ts
 tests/property-publishing.spec.ts
 ```
+
+## Final print polish
+
+- Floor-plan PDF uploads retain source page dimensions and the smallest extracted
+  text size in existing listing JSON. The condensed format includes a plan only
+  when this metadata estimates at least 8-point labels in its full-width region.
+  It replaces optional supporting photos. Detailed, multi-page and unverified
+  raster/legacy plans are omitted only from the condensed artwork, with an
+  explanation outside the brochure. Listing data, longer formats and URLs remain.
+- Full Letter/Folded plan panels devote the former duplicate photograph region to
+  the plan. Landscape plans use full width; portrait plans use a tall region with
+  property facts alongside. Both use contain fitting, with shared preview/export
+  orientation handling. All eight property facts and printing order remain.
+- Source PDF text size is an estimate, not an assurance of physical legibility:
+  scanned/raster labels cannot be measured. Longer formats retain such plans.
+  Existing PDF upload handling still renders the first page of multi-page plans,
+  explicitly identified as page 1; this is not a new multi-page plan exporter.
+- Real listings use the saved Brand Profile or their saved brand snapshot. An
+  empty profile never falls back to demonstration branding. Explicit sample
+  previews remain labelled. Missing portraits/logos leave no placeholder image;
+  long names wrap and images keep their proportions.
+- Fixture profiles are saved/reloaded through the actual private account API.
+  Tests also audit a separate isolated rendering of the owner's already-public
+  saved profile, without changing that owner's account or publishing a fake
+  property. Personal branding assets/contact details are not committed.
+- No database migration, environment variable, export-card, public URL, QR
+  destination, authentication or RLS change is required.
+
+Physical paper printing was not performed. Before approval, download the PDFs
+from the feature Preview and print at 100% with the stated duplex edge; inspect
+actual floor-plan labels, paper margins, branding and phone QR scanning.
+
+### Print-polish files
+
+Application changes are limited to brochure rendering/preview, plan upload
+metadata and its existing JSON validation, and the workspace brand fallback:
+
+- `app/components/{brochure-paper,brochure-preview,studio-paper,marketing-package,workspace}.tsx`
+- `app/globals.css`
+- `app/lib/{floor-plan-print,listing-images,listing}.ts`
+- `app/lib/server/{brochure-pdf,properties}.ts`
+
+Tests/proofs: `scripts/floor-plan-print.test.mjs`,
+`tests/{brochure-studio,marketing-package,pdf-export,agent-portfolio}.spec.ts`,
+`tests/helpers/studio-real-profile.ts`, synthetic `tests/fixtures/print-*`, and
+this document / `docs/brochure-studio-previews`.
+
+### Completed matrix validation
+
+All nine combinations passed for detached, condominium and loft listings on
+both desktop and mobile, plus detailed portrait-plan fixtures on both and a
+separate genuine saved-brand proof on desktop: 81 matrix PDF exports. Two
+additional blank-profile exports verify no demonstration identity leaks into a
+real listing. Checks cover exact 2/4/2 page counts and print dimensions, embedded
+fonts, QR decoding to listory.ca, folded outside ordering, text bounds, supplied
+captions, saved contact fields, and floor-plan proportions / projected label size.
+
+Production build, standalone TypeScript and all 42 checks across 15 script test
+files passed. These include lifecycle, RLS, data immutability and PDF deployment
+trace checks. Interior/back proofs were rasterized from actual PDFs;
+the gallery contains 24 browser/PDF proofs. Genuine personal assets and contact
+information are deliberately excluded from the committed fixture gallery.
+
+All 91 unique selected desktop/mobile browser cases have passing results across
+the broad run and focused reruns. The five failures in the initial broad run
+were two assertions expecting the deliberately removed decorative plan-page
+photo and three PDF cases interrupted by a local test-server/proxy restart.
+The updated assertions passed on both viewports; all three interrupted cases
+passed in the final focused run. The portfolio test had one asynchronous loading
+timeout and passed on retry (its data-loading assertion now allows 15 seconds).
+The final eight-case publishing/Open House/gallery/image-fitting run passed
+cleanly on desktop and mobile. Live integration fixtures were isolated and
+cleaned up; no existing user or listing was edited for those checks.

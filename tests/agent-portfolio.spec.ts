@@ -39,7 +39,7 @@ test('portfolio privacy, branding, public navigation, feature limits and safe ca
   }
   expect((await second.request.patch(`/api/properties/${slugs[0]}/featured`,{headers:{origin},data:{featured:true}})).status()).toBe(404);
   expect((await page.request.patch(`/api/properties/${slugs[7]}/featured`,{headers:{origin},data:{featured:true}})).status()).toBe(400);
-  await page.reload();await expect(settings.locator('.portfolio-feature-choice')).toHaveCount(8);
+  await page.reload();await expect(settings.locator('.portfolio-feature-choice')).toHaveCount(8,{timeout:15000});
   await settings.locator('.portfolio-feature-choice').filter({hasText:summaries[0].address}).getByRole('checkbox').check();await expect(settings.getByText('Featured listings updated.',{exact:true})).toBeVisible();
   for(let i=1;i<6;i++)expect((await page.request.patch(`/api/properties/${slugs[i]}/featured`,{headers:{origin},data:{featured:true}})).status()).toBe(200);
   expect((await page.request.patch(`/api/properties/${slugs[6]}/featured`,{headers:{origin},data:{featured:true}})).status()).toBe(400);

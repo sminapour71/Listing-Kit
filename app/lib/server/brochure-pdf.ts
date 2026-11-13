@@ -1,3 +1,4 @@
+import {layoutFloorPlans} from '../floor-plan-print';
 import { applyGalleryLayouts, measurePhotoGrids, galleryLayout, applyBrochureSheetFits, compactBrochureSheets, measureBrochureSheets } from '../brochure-layout';
 import { describePhoto, focalPosition, photoFit, photoPosition, type PhotoMode } from '../photo-fitting';
 import chromium from '@sparticuz/chromium';
@@ -150,6 +151,7 @@ export async function renderBrochurePdf(input: PdfRequest, signal: AbortSignal):
       await Promise.all(Array.from(document.images).map(image => image.decode()));
       if (!document.fonts.check('500 15px "Bodoni Moda"') || !document.fonts.check('400 12px "Listory Brochure Serif"')) throw new Error('Print fonts did not load');
     });
+    await page.evaluate(layoutFloorPlans);
     await fitPropertyPhotos(page);
     let fit = await page.evaluate(measureBrochureSheets as () => ReturnType<typeof measureBrochureSheets>);
     if (fit.some(result => result.scale < .8)) {

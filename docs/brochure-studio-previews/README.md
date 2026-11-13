@@ -20,10 +20,37 @@ duplex; Folded is short-edge duplex. There is no added professional bleed.
 ## Inside the brochures
 
 These are faithful raster proofs of the **downloaded PDFs** (96 dpi), including
-the uploaded floor plan. They complement the browser captures above.
+the uploaded detailed floor plan. They complement the browser captures above.
+
+These refreshed proofs use explicitly synthetic branding fixtures with dedicated
+portrait/team/brokerage artwork, not property photographs as logo substitutes.
+Only the two short custom fixture captions are shown; uncaptained photographs
+have no fallback text. The detailed plan is deliberately omitted from the
+two-sided sheet and given a larger region in the full formats. A separate
+private proof checks the owner’s genuine saved public branding; personal assets
+and contact details are not committed to this gallery.
 
 | Design | Two-sided back | Letter story / photographs | Letter floor plan / specifications |
 |---|---|---|---|
 | Listory Original | ![](listory-original-double-sided-back.png) | ![](listory-original-letter-page-2.png) | ![](listory-original-letter-page-3.png) |
 | Montserrat Minimalist | ![](montserrat-minimalist-double-sided-back.png) | ![](montserrat-minimalist-letter-page-2.png) | ![](montserrat-minimalist-letter-page-3.png) |
 | Classic Editorial | ![](classic-editorial-double-sided-back.png) | ![](classic-editorial-letter-page-2.png) | ![](classic-editorial-letter-page-3.png) |
+
+## Simple plan in the condensed format
+
+The condominium fixture has measurable large labels and retains its plan in a
+full-width region in place of optional supporting photos. Dense or unverifiable
+plans do not appear as miniatures in this format.
+
+| Listory Original | Montserrat Minimalist | Classic Editorial |
+|---|---|---|
+| ![](listory-original-condo-plan.png) | ![](montserrat-minimalist-condo-plan.png) | ![](classic-editorial-condo-plan.png) |
+
+## Detailed portrait plan in the full formats
+
+A tall plan region keeps the original proportions; specifications move alongside.
+Letter page 3 is also the inner-right panel of the Folded format.
+
+| Listory Original | Montserrat Minimalist | Classic Editorial |
+|---|---|---|
+| ![](listory-original-portrait-plan.png) | ![](montserrat-minimalist-portrait-plan.png) | ![](classic-editorial-portrait-plan.png) |

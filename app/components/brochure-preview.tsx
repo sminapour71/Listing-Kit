@@ -1,5 +1,6 @@
 'use client';
 import { Children, useEffect, useRef, useState, type ReactNode } from 'react';
+import {layoutFloorPlans} from '../lib/floor-plan-print';
 import { applyBrochureSheetFits, compactBrochureSheets, measureBrochureSheets, refreshPhotoGrids } from '../lib/brochure-layout';
 /** One fixed Letter sheet; only its outer scale responds to the workspace. */
 export default function BrochurePreview({ children, spread = false }: { children: ReactNode; spread?: boolean }) {
@@ -19,6 +20,7 @@ export default function BrochurePreview({ children, spread = false }: { children
         ...Array.from(sheet.querySelectorAll('img')).map(image => image.decode().catch(() => {})),
       ]);
       if (cancelled) return;
+      layoutFloorPlans(sheet);
       refreshPhotoGrids(sheet);
       let fits = measureBrochureSheets(sheet);
       if (fits.some(fit => fit.scale < .8)) { compactBrochureSheets(fits, sheet); refreshPhotoGrids(sheet); fits = measureBrochureSheets(sheet); }

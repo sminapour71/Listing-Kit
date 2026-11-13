@@ -1,7 +1,8 @@
+import type {FloorPlanPrint} from './floor-plan-print';
 import type {BrochureSettings} from './brochure-studio';
 import type { PhotoDimensions } from './photo-fitting';
 import type { BrandProfile } from './brand-profile';
-export type ListingImage = { id: string; url: string; name: string; pdfPages?: number; caption?: string } & PhotoDimensions;
+export type ListingImage = { id: string; url: string; name: string; pdfPages?: number; caption?: string; floorPlanPrint?: FloorPlanPrint } & PhotoDimensions;
 export type Listing = {
   address: string; price: string; bedrooms: string; bathrooms: string; squareFootage: string;
   taxes: string; strata: string; parking: string; storage: string; description: string; features: string;

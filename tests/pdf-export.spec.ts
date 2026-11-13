@@ -89,7 +89,8 @@ test('downloads the current listing and saved realtor brand in both exact print 
   expect(letter.pages[0].colours).toContain('#152f48'); expect(letter.pages[2].colours).toContain('#efd8b5');
   expect(letter.pages[0].images.some(image => image[1] >= 2500)).toBe(true);
   expect(letter.pages[1].images.length).toBeGreaterThanOrEqual(4);
-  expect(letter.pages[2].images.length).toBeGreaterThanOrEqual(2);
+  // The floor-plan page now reserves the former decorative photograph region for the plan.
+  expect(letter.pages[2].images.length).toBeGreaterThanOrEqual(1);
   expect(letter.pages[3].images.length).toBeGreaterThanOrEqual(3);
   for (const [i, p] of letter.pages.entries()) { expect(p.text).toMatch(new RegExp(`\\b0\\s*${i + 1}\\b`)); expect(p.text).toContain('Listory.'); }
   const letterPreferences = letter.document.catalog.getOrCreateViewerPreferences();
